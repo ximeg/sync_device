@@ -8,12 +8,18 @@ kHz = 1000
 MHz = 1000*kHz
 
 class AVR(object):
-    def __init__(self, port="COM6", baudrate = 2*MHz, timeout=20*ms):
-        self.serial = serial.Serial(port, baudrate=baudrate, timeout=timeout)
+    def __init__(self, port="COM6", baudrate = 2*MHz):
+        self.serial = serial.Serial(port, baudrate=baudrate, timeout=4)
         if not self.serial.is_open:
             self.serial.open()
-        sleep(0.1)
+
+        # We wait for Arduino to startup
+        startup_message = self.serial.readline().strip().decode()
+        print(startup_message)
+        assert startup_message == "Arduino is up!"
         self.serial.flush()
+        self.serial.timeout = 20*ms
+        sleep(0.08)
     
     def __del__(self):
         self.serial.close()
@@ -95,7 +101,7 @@ class AVR(object):
     def TCCR1C(self, value):
         self.set_register(R8.TCCR1C, value)
 
-
+# TODO: How to generate these properties dynamically for all registers??
 
 
 if __name__ == "__main__":

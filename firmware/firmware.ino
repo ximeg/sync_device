@@ -6,6 +6,7 @@ void setup() {
   // All pins on port B are outputs
   Serial.begin(2000000);
   Serial.setTimeout(10);  // ms
+  Serial.println("Arduino is up!");
 }
 
 
@@ -31,7 +32,6 @@ int charsRead;
 void loop() {
 
   if (Serial.available() > 0){
-
     charsRead = Serial.readBytes(df.text, 3);
     if (charsRead == 3){
       switch (df.bytes.cmd){
@@ -40,25 +40,13 @@ void loop() {
           // Write the value to the register with given address
           *( (uchar *) df.bytes.addr) = df.bytes.value;
           break;
-
+  
         case 'R':
         case 'r':
           // Read the value from the given register
           Serial.write(*((uchar *) df.bytes.addr));
           break;
-
-/*
-        case 'D':
-        case 'd':
-          // debug
-          Serial.print("Received "); Serial.write(df.text, 3);
-          Serial.print(" addr=0x"); Serial.print(df.bytes.addr, HEX);
-          Serial.print(" value=0x"); Serial.println(df.bytes.value, HEX);
-          
-          break;*/
-
       }
     }
-
   }
 }
