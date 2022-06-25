@@ -1,26 +1,22 @@
 import serial
 from registers import *
-
+from time import sleep
 
 ms = 0.001
-kbps = 1000
-Mbps = 1000*kbps
-
+us = 0.001 * ms
+kHz = 1000
+MHz = 1000*kHz
 
 class AVR(object):
-    def __init__(self, port="COM6", baudrate = 2*Mbps, timeout=5*ms):
+    def __init__(self, port="COM6", baudrate = 2*MHz, timeout=20*ms):
         self.serial = serial.Serial(port, baudrate=baudrate, timeout=timeout)
         if not self.serial.is_open:
             self.serial.open()
+        sleep(0.1)
+        self.serial.flush()
     
     def __del__(self):
         self.serial.close()
-
-    def debug(self, addr, value):
-        frame = bytearray([ord("D"), addr, value])
-        self.serial.write(frame)
-        print(frame)
-        return self.serial.readline()
 
     def set_register(self, addr, value):
         self.serial.write(bytearray([ord("W"), addr, value]))
@@ -98,3 +94,35 @@ class AVR(object):
     @TCCR1C.setter
     def TCCR1C(self, value):
         self.set_register(R8.TCCR1C, value)
+
+
+
+
+if __name__ == "__main__":
+    avr = AVR()
+
+    # Enable outputs on port B
+    avr.set_register(R8.DDRB, 0xff)
+
+  # bit    : 7      6      5      4      3     2    1     0
+  # TCCR1A : COM1A1 COM1A0 COM1B1 COM1B0 -     -    WGM10 WGM11
+  # TCCR1B : ICNC1  ICES1  -      WGM13  WGM12 CS12 CS11  CS10
+  # TCCR1C : FOC1A  FOC1B  -      -      -     -    -     -
+
+    # Set output compare registers
+    freq = (16*MHz / 1024)
+
+    # Set period to 383 ms
+    avr.ICR1 = int(383*ms*freq)
+    # Output A (pin 10) stays high for 52.3 ms
+    avr.OCR1A = int(52.3*ms*freq)
+    # Output B (pin 9) stays low for 74.5 ms
+    avr.OCR1B = int(74.5*ms*freq)
+
+    # Reset timer
+    avr.TCNT1 = 0
+
+    # Set pin A on bottom, clear on match. B inverted
+    avr.TCCR1A = COM1A1 | COM1B1 | COM1B0 | WGM11
+    # Fast PWM mode, top=ICR1, prescaler 1024
+    avr.TCCR1B = WGM13 | WGM12 | CS12 | CS10
