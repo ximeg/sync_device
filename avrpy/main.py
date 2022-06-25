@@ -9,17 +9,18 @@ MHz = 1000*kHz
 
 class AVR(object):
     def __init__(self, port="COM6", baudrate = 2*MHz):
-        self.serial = serial.Serial(port, baudrate=baudrate, timeout=4)
+        self.serial = serial.Serial(port, baudrate=baudrate)
         if not self.serial.is_open:
             self.serial.open()
 
-        # We wait for Arduino to startup
-        startup_message = self.serial.readline().strip().decode()
-        print(startup_message)
-        assert startup_message == "Arduino is up!"
+        # Opening of the serial port resets Arduino
+        # We are going to wait for it to start up
+        self.serial.timeout = 5  # seconds
+        msg = self.serial.readline().strip().decode()
+        self.serial.timeout = 10*ms
+        assert msg == "Arduino is ready!", f"Could not connect to Arduino, received message: '{msg}'"
         self.serial.flush()
-        self.serial.timeout = 20*ms
-        sleep(0.08)
+        sleep(0.01)
     
     def __del__(self):
         self.serial.close()

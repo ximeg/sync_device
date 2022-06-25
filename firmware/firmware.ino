@@ -6,7 +6,6 @@ void setup() {
   // All pins on port B are outputs
   Serial.begin(2000000);
   Serial.setTimeout(10);  // ms
-  Serial.println("Arduino is up!");
 }
 
 
@@ -26,10 +25,20 @@ union DataFrame {
 
 union DataFrame df;
 int charsRead;
+bool up = false;
 
 
 // the loop function runs over and over again forever
 void loop() {
+  while (!Serial){
+    delay(1);  // Wait until the serial port is ready
+  }
+  if (!up){
+    Serial.flush();
+    // Notify the host that we are ready
+    Serial.println("Arduino is ready!");
+    up = true;
+  }
 
   if (Serial.available() > 0){
     charsRead = Serial.readBytes(df.text, 3);
