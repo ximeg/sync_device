@@ -41,50 +41,59 @@ void setup() {
   setup_timer_counter_1();
 
   Serial.begin(2000000);
-  Serial.setTimeout(10);
+  Serial.setTimeout(10);  // ms
 }
 
 
+// Bytes in the data frame
+struct Bytes {
+  uchar cmd;
+  uchar addr;
+  uchar value;
+};
 
+// Data frame consists of bytes but can
+// be represented as text
+union DataFrame {
+  struct Bytes bytes;
+  uchar text[4];
+};
 
-
-char input[6];
+union DataFrame df;
 int charsRead;
-unsigned long val;
+
 
 // the loop function runs over and over again forever
 void loop() {
 
   if (Serial.available() > 0){
-    charsRead = Serial.readBytesUntil('\n', input, 5);
-    input[charsRead] = '\0';
 
-    char r_addr_hex[3];
-    unsigned char r_addr;
-    char r_val_hex[3];
-    unsigned char r_val;
+    charsRead = Serial.readBytes(df.text, 3);
+    if (charsRead == 3){
+      switch (df.bytes.cmd){
+        case 'W':
+        case 'w':
+          // Write the value to the register with given address
+          *( (uchar *) df.bytes.addr) = df.bytes.value;
+          break;
 
-    memcpy(r_addr_hex, &input[1], 2);
-    r_addr_hex[2] = 0;
-    r_addr = strtoul(r_addr_hex, NULL, 16);
+        case 'R':
+        case 'r':
+          // Read the value from the given register
+          Serial.write(*((uchar *) df.bytes.addr));
+          break;
 
-    switch (input[0]){
-      case 'W':
-      case 'w':
-        memcpy(r_val_hex, &input[3], 2);
-        r_val_hex[2] = 0;
-        r_val = strtoul(r_val_hex, NULL, 16);
+        case 'D':
+        case 'd':
+          // debug
+          Serial.print("Received "); Serial.write(df.text, 3);
+          Serial.print(" addr=0x"); Serial.print(df.bytes.addr, HEX);
+          Serial.print(" value=0x"); Serial.println(df.bytes.value, HEX);
+          
+          break;
 
-        // Write the value to the register with given address
-        *( (unsigned char *) r_addr) = r_val;
-
-        break;
-      case 'R':
-      case 'r':
-        r_val = *((unsigned char *) r_addr);
-        Serial.print(r_val, HEX);
-        break;
+      }
     }
+
   }
-  
 }

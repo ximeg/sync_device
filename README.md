@@ -7,17 +7,28 @@ This project consists of a very simple firmware, a primitive communication proto
 
 ## Communication protocol
 
-Each command is transmitted as a `\n`-terminated data packet with up to 5 bytes in length:
+Each command is transmitted from PC to the microcontroller as a 3-byte packet:
 
 ```
-Byte # | value     | meaning                                     |
--------|-----------|---------------------------------------------|
-1      | R or W    | Read or write                               |
-2 & 3  | ascii hex | Register address                            |
-4 & 5  | ascii hex | Register value to write (ignored for read)  |
+Byte | Value   | Description                                 |
+-----|---------|---------------------------------------------|
+1    | cmd     | Command: R-read / W-write. Can be extended  |
+2    | addr    | Register address                            |
+3    | value   | Register value to write (ignored for read)  |
 ```
 
-Example: `WA71F\n` means "write value `0x1F` to register with the address of `0xA7`. `R24\n` is a command to read the content of register with the address `0x24`.
+Examples:
+  * `W\xA7\1F` means "write value `0x1F` to register with the address of `0xA7`.
+  * `R2` requests value of register with the address `0x32` (hex code of symbol `2`).
+  * `R24` same as above; the last byte, `4`, is ignored for the read operation.
+
+The result of the `R` (read) command is just one byte - the content of the register.
+
+The protocol could be extended with additional commands that would invoke user-defined firmware functions.
+
+Once any data arrives to the microcontroller serial port, it will try to read
+all three bytes at once, waiting up to 10 ms for each byte. If a byte gets lost,
+the whole frame gets discarded - this ensures that the devices don't run out of sync.
 
 ## Firmware
 
@@ -27,13 +38,11 @@ The simplified pseudocode of the firmware is:
 serial.start(baudrate = 2*Mbps)
 
 if serial.has_data:
-    buf = serial.read_until('\n', max_bytes = 5)
-    cmd = buf[0]
-    addr = int(buf[1:2], 16)
+    cmd, addr, value = serial.read(n_bytes = 3)
     if cmd == 'W':
-        register_at(addr) = int(buf[3:4], 16)
+        register_at(addr) = value
     elif cmd == 'R":
-        serial.write("r" + addr + hex(register_at(addr)))
+        serial.write(register_at(addr))
 ```
 
 ## Python driver
@@ -43,7 +52,7 @@ The driver makes the communication human-readable. Instead of sending plain numb
 ```python
 avr = AVR(serial="COM3")
 avr.TCCR1A = WGM1 | WGM2 | COM1A1  # initialize timer 1
-print("{:08b}".format(avr.SREG)    # print the status register
+print("{:08b}".format(avr.SREG))   # print the status register
 ```
 
 If you know how to use registers and where to find information about them, you can quickly build more complex scenarios and interfaces on top of this. The best part - the functionality can be defined and changed dynamically from Python, without touching the actual firmware of the microcontroller.

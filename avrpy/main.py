@@ -13,7 +13,7 @@ class R(IntEnum):
     OCR1BH = 0x8B
 
 class AVR(object):
-    def __init__(self, port="COM6", baudrate = 2*Mbps, timeout=10*ms):
+    def __init__(self, port="COM6", baudrate = 2*Mbps, timeout=5*ms):
         self.serial = serial.Serial(port, baudrate=baudrate, timeout=timeout)
         if not self.serial.is_open:
             self.serial.open()
@@ -21,14 +21,19 @@ class AVR(object):
     def __del__(self):
         self.serial.close()
 
+    def debug(self, addr, value):
+        frame = bytearray([ord("D"), addr, value])
+        self.serial.write(frame)
+        print(frame)
+        return self.serial.readline()
+
     def set_register(self, addr, value):
-        self.serial.write(f"W{addr:02x}{value:02x}\n".encode())
+        self.serial.write(bytearray([ord("W"), addr, value]))
 
     def get_register(self, addr):
         self.serial.flush()
-        self.serial.write(f"R{addr:02x}\n".encode())
-        val = self.serial.read(2)
-        return int(val, 16)
+        self.serial.write(bytearray([ord("R"), addr, 0]))
+        return ord(self.serial.read(1))
 
     def get_16bit_register(self, addrL):
         byte_L = self.get_register(addrL)
