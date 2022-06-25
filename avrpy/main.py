@@ -1,16 +1,11 @@
-from enum import IntEnum
 import serial
+from registers import *
 
 
 ms = 0.001
 kbps = 1000
 Mbps = 1000*kbps
 
-class R(IntEnum):
-    OCR1AL = 0x88
-    OCR1AH = 0x89
-    OCR1BL = 0x8A
-    OCR1BH = 0x8B
 
 class AVR(object):
     def __init__(self, port="COM6", baudrate = 2*Mbps, timeout=5*ms):
@@ -49,16 +44,57 @@ class AVR(object):
 
     @property
     def OCR1A(self):
-        return self.get_16bit_register(R.OCR1AL)
-
+        return self.get_16bit_register(R16.OCR1A)
     @OCR1A.setter
     def OCR1A(self, value):
-        self.set_16bit_register(R.OCR1AL, value)
+        self.set_16bit_register(R16.OCR1A, value)
 
     @property
     def OCR1B(self):
-        return self.get_16bit_register(R.OCR1BL)
-
+        return self.get_16bit_register(R16.OCR1B)
     @OCR1B.setter
     def OCR1B(self, value):
-        self.set_16bit_register(R.OCR1BL, value)
+        self.set_16bit_register(R16.OCR1B, value)
+
+    @property
+    def TCNT1(self):
+        return self.get_16bit_register(R16.TCNT1)
+    @TCNT1.setter
+    def TCNT1(self, value):
+        self.set_16bit_register(R16.TCNT1, value)
+
+    @property
+    def ICR1(self):
+        return self.get_16bit_register(R16.ICR1)
+    @ICR1.setter
+    def ICR1(self, value):
+        self.set_16bit_register(R16.ICR1, value)
+
+    @property
+    def ADC(self):
+        return self.get_16bit_register(R16.ADC)
+    @ADC.setter
+    def ADC(self, value):
+        self.set_16bit_register(R16.ADC, value)
+
+
+    @property
+    def TCCR1A(self):
+        return self.get_register(R8.TCCR1A)
+    @TCCR1A.setter
+    def TCCR1A(self, value):
+        self.set_register(R8.TCCR1A, value)
+
+    @property
+    def TCCR1B(self):
+        return self.get_register(R8.TCCR1B)
+    @TCCR1B.setter
+    def TCCR1B(self, value):
+        self.set_register(R8.TCCR1B, value)
+
+    @property
+    def TCCR1C(self):
+        return self.get_register(R8.TCCR1C)
+    @TCCR1C.setter
+    def TCCR1C(self, value):
+        self.set_register(R8.TCCR1C, value)
