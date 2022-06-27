@@ -1,8 +1,9 @@
 import serial
-from time import sleep
 from enum import Enum
-from constants import ms, MHz
-from __version__ import __version__
+from time import sleep
+from . __version__ import __version__
+from . constants import ms, MHz
+
 
 class RegisterBase(Enum):
     """
@@ -19,6 +20,11 @@ class RegisterBase(Enum):
     @property
     def addr(self):
         return self.value[0]
+
+
+def _compare_versions(v1, v2):
+    return {k: a == b for k, a, b in zip(["major", "minor", "patch"], v1.split("."), v2.split("."))}
+
 
 class AVR_Base(object):
     """
@@ -45,7 +51,9 @@ class AVR_Base(object):
                     f"Received message:\n{msg}\n" +
                     f"Expected message:\n{msg_template + __version__}")
             v = msg[len(msg_template):]
-            if v != __version__:
+
+            version_match = _compare_versions(v, __version__)
+            if not version_match["major"] or not version_match["minor"]:
                 raise RuntimeWarning(f"Version mismatch: driver {__version__} != firmware {v}")
 
         self.serial.flush()

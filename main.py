@@ -1,6 +1,5 @@
-from mega328P import Mega328P
-from constants import *
-from avr_bits import *
+from avrpy.mega328P import Mega328P
+from avrpy import *
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-from avr_base import define_AVR, RegisterBase
+from . avr_base import define_AVR, RegisterBase
 
 """
 ATmega328P registers, adapted from

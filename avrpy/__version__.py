@@ -8,7 +8,7 @@ __title__ = "avrpy"
 __description__ = (
     "Low-level control of an AVR microcontroller using Python via serial port."
 )
-__version__ = "0.1.0"  # MUST be the same as in `firmware.ino`
+__version__ = "0.1.1"  # Major and minor MUST be the same as in `firmware.ino`, patch may be different
 __author__ = "Roman Kiselev"
 __author_email__ = "roman.kiselev@stjude.org"
 __license__ = "Apache 2.0"
