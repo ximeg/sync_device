@@ -3,7 +3,26 @@ ATmega328P registers, adapted from
 https://github.com/DarkSector/AVR/blob/master/asm/include/m328Pdef.inc
 """
 
-from enum import IntEnum
+
+from aenum import IntEnum, MultiValueEnum
+
+class Register:
+    def __init__(self, addr, bits=8):
+        self.addr = addr
+        self.bits = bits
+    def __repr__(self):
+        return f"{self.bits}-bit register at {hex(self.addr)}"
+
+class R(Enum):
+    UBRR0 =  Register(0xc4, 16)
+    OCR1B =  Register(0x8a, 16)
+    UBRR0H = Register(0xc5)
+
+
+class REG(MultiValueEnum):
+    UBRR0 = 0xc4, "16-bit"
+    OCR1B = 0x8a, "16bit"
+    UBRR0H = 0xc5, "8bit"
 
 # 16 bit registers
 class R16(IntEnum):

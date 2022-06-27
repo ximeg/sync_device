@@ -1,3 +1,4 @@
+from atexit import register
 import serial
 from registers import *
 from time import sleep
@@ -81,12 +82,12 @@ class AVR(object):
         self.set_16bit_register(R16.ADC, value)
 
 
-    @property
-    def TCCR1A(self):
-        return self.get_register(R8.TCCR1A)
-    @TCCR1A.setter
-    def TCCR1A(self, value):
-        self.set_register(R8.TCCR1A, value)
+    # @property
+    # def TCCR1A(self):
+    #     return self.get_register(R8.TCCR1A)
+    # @TCCR1A.setter
+    # def TCCR1A(self, value):
+    #     self.set_register(R8.TCCR1A, value)
 
     @property
     def TCCR1B(self):
@@ -103,6 +104,21 @@ class AVR(object):
         self.set_register(R8.TCCR1C, value)
 
 # TODO: How to generate these properties dynamically for all registers??
+
+# We generate properties dynamically for all registers
+for register in [R8.DDRB, R8.TCCR1A]:
+    r = register
+    def _getter(self):
+        print(r.name, r.value)
+        return self.get_register(r)
+
+    def _setter(self, value):
+        print(r.name, r.value)
+        self.set_register(r, value)
+
+    setattr(AVR, r.name, property(fget=_getter, fset=_setter))
+
+
 
 
 if __name__ == "__main__":
@@ -132,4 +148,5 @@ if __name__ == "__main__":
     avr.TCNT1 = 0
 
     # Enable outputs on port B
-    avr.set_register(R8.DDRB, 0xff)
+    avr.DDRB = 0xff
+    #avr.set_register(R8.DDRB, 0xff)
