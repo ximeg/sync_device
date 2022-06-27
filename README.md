@@ -18,7 +18,7 @@ Byte | Value   | Description                                 |
 ```
 
 Examples:
-  * `W\xA7\1F` means "write value `0x1F` to register with the address of `0xA7`.
+  * `W\xA7\x1F` means "write value `0x1F` to register with the address of `0xA7`.
   * `R2` requests value of register with the address `0x32` (hex code of symbol `2`).
   * `R24` same as above; the last byte, `4`, is ignored for the read operation.
 
