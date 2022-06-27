@@ -108,7 +108,7 @@ def define_AVR(RegisterList : RegisterBase):
 
     for register in RegisterList:
         def _getter(self, register=register):
-            self.get_register(register)
+            return self.get_register(register)
         def _setter(self, x, register=register):
             self.set_register(register, x)
         prop = property(fget = _getter, fset=_setter)
