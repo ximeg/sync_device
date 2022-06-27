@@ -57,6 +57,3 @@ print("{:08b}".format(avr.SREG))   # print the status register
 
 If you know how to use registers and where to find information about them, you can quickly build more complex scenarios and interfaces on top of this. The best part - the functionality can be defined and changed dynamically from Python, without touching the actual firmware of the microcontroller.
 
-## Initialization
-
-Remember that on Arduino boards the AVR gets reset when you open the serial port. Therefore, you might have to wait for it to restart.
