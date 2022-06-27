@@ -1,3 +1,4 @@
+# Constant definitions
 ms = 0.001
 us = 0.001 * ms
 kHz = 1000

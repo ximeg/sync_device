@@ -1,10 +1,30 @@
 import serial
-from registers import *
 from time import sleep
-from constants import *
+from enum import Enum
+from constants import ms, MHz
+
+class RegisterBase(Enum):
+    """
+    Base class to create microcontroller-specific list of registers.
+    Stores register name, address, and type (8-bit or 16-bit).
+    """
+    def __repr__(self):
+        return f"{self.name}: {self.bits}-bit register at {self.addr}"
+
+    @property
+    def bits(self):
+        return self.value[1]
+
+    @property
+    def addr(self):
+        return self.value[0]
 
 class AVR_Base(object):
-    def __init__(self, port="COM6", baudrate = 2*MHz):
+    """
+    Abstract AVR microcontroller unit (MCU). You can read/write registers if you know their address.
+    However, it is recommended to derive a class for a specific MCU by calling `define_AVR` with list of registers
+    """
+    def __init__(self, port, baudrate):
         self.serial = serial.Serial(port, baudrate=baudrate)
         if not self.serial.is_open:
             self.serial.open()
@@ -16,24 +36,24 @@ class AVR_Base(object):
         self.serial.timeout = 10*ms
         assert msg == "Arduino is ready!", f"Could not connect to Arduino, received message: '{msg}'"
         self.serial.flush()
-        sleep(0.01)
+        sleep(10*ms)
     
     def __del__(self):
         self.serial.close()
 
-    def get_register(self, register):
-        if register in R8:
-            return self._get_8bit_register(register.value)
-        elif register in R16:
-            return self._get_16bit_register(register.value)
+    def get_register(self, register: RegisterBase):
+        if register.bits == 8:
+            return self._get_8bit_register(register.addr)
+        elif register.bits == 16:
+            return self._get_16bit_register(register.addr)
         else:
             ValueError(f"Unknown register {register}") 
 
-    def set_register(self, register, x):
-        if register in R8:
-            self._set_8bit_register(register.value, x)
-        elif register in R16:
-            self._set_16bit_register(register.value, x)
+    def set_register(self, register: RegisterBase, x):
+        if register.bits == 8:
+            self._set_8bit_register(register.addr, x)
+        if register.bits == 16:
+            self._set_16bit_register(register.addr, x)
         else:
             ValueError(f"Unknown register {register}")
 
@@ -56,3 +76,22 @@ class AVR_Base(object):
         self._set_8bit_register(addrL + 1, byte_H)
         self._set_8bit_register(addrL, byte_L)
 
+
+def define_AVR(RegisterList : RegisterBase):
+    """
+    Creates class representing a specific microcontroller based on a list of registers
+    """
+    class AVR(AVR_Base):
+        def __init__(self, port, baudrate=2*MHz):
+            super().__init__(port, baudrate)
+
+    for register in RegisterList:
+        def _getter(self, register=register):
+            self.get_register(register)
+        def _setter(self, x, register=register):
+            self.set_register(register, x)
+        prop = property(fget = _getter, fset=_setter)
+
+        setattr(AVR, register.name, prop)
+    
+    return AVR
