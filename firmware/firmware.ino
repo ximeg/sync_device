@@ -1,4 +1,5 @@
 #define uchar unsigned char
+#define VERSION "0.1.0"
 
 // the setup function runs once when you press reset or power the board
 void setup() {
@@ -36,7 +37,8 @@ void loop() {
   if (!up){
     Serial.flush();
     // Notify the host that we are ready
-    Serial.println("Arduino is ready!");
+    Serial.print("Arduino is ready. Firmware version: ");
+    Serial.println(VERSION);
     up = true;
   }
 

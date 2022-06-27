@@ -2,6 +2,7 @@ import serial
 from time import sleep
 from enum import Enum
 from constants import ms, MHz
+from __version__ import __version__
 
 class RegisterBase(Enum):
     """
@@ -34,7 +35,19 @@ class AVR_Base(object):
         self.serial.timeout = 5  # seconds
         msg = self.serial.readline().strip().decode()
         self.serial.timeout = 10*ms
-        assert msg == "Arduino is ready!", f"Could not connect to Arduino, received message: '{msg}'"
+
+        # Ensure that firmware and driver have the same version
+        msg_template = "Arduino is ready. Firmware version: "
+        if msg != msg_template + __version__:
+            if msg.find(msg_template) != 0:
+                raise ConnectionError(
+                    f"Could not connect to Arduino on port {port};\n" +
+                    f"Received message:\n{msg}\n" +
+                    f"Expected message:\n{msg_template + __version__}")
+            v = msg[len(msg_template):]
+            if v != __version__:
+                raise RuntimeWarning(f"Version mismatch: driver {__version__} != firmware {v}")
+
         self.serial.flush()
         sleep(10*ms)
     
