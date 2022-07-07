@@ -57,3 +57,28 @@ print("{:08b}".format(avr.SREG))   # print the status register
 
 If you know how to use registers and where to find information about them, you can quickly build more complex scenarios and interfaces on top of this. The best part - the functionality can be defined and changed dynamically from Python, without touching the actual firmware of the microcontroller.
 
+### Transactions and the context manager
+
+Sometimes you'd want to set several registers immediately one after another, especially if you work with timers in a time-sensitive application. Consider the following code, where you want all three commands to be executed in a rapid succession. Each of them results in a separate data packet sent to the microcontroller, and there might be unpredictable time delays between them, especially if the your Python process is runs several parallel threads. 
+
+```py
+avr.TCCR1A = WGM1 | WGM2 | COM1A1  # setup timer
+avr.TCCR1B = WGM13 | WGM12 | CS12 | CS10
+avr.TCNT1 = 0                      # reset timer (it's already running!)
+avr.DDRB = 0xff                    # Enable outputs on port B
+```
+
+If you rewrite this using a context manager (python `with` statement), then the outgoing data packets are cached and transmitted all at once, which guarantees that there are no random time delays between these operations.
+
+```py
+# Enter transaction and cache the data
+with avr:
+    avr.TCCR1A = WGM1 | WGM2 | COM1A1
+    avr.TCCR1B = WGM13 | WGM12 | CS12 | CS10
+    avr.TCNT1 = 0
+    avr.DDRB = 0xff
+
+# Exit context manager and send data all at once (4x3 = 12 bytes)
+```
+
+The caveat is that only the outgoing data for setting a register is cached. Reading a register is executed immediately, no matter whether you are using a context manager or not.
