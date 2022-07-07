@@ -57,10 +57,27 @@ class AVR_Base(object):
                 raise RuntimeWarning(f"Version mismatch: driver {__version__} != firmware {v}")
 
         self.serial.flush()
-        sleep(10*ms)
+        sleep(50*ms)
+
+        self._transaction_mode_ = False
+        self._buffer_ = bytearray()
     
     def __del__(self):
         self.serial.close()
+
+    def __enter__(self):
+        """
+        Enter a transaction - cache all outgoing data in a buffer 
+        """
+        self._transaction_mode_ = True
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """
+        Exit a transaction - transmit all cached data to the microcontroller
+        """
+        self.serial.write(self._buffer_)
+        self._buffer_ = bytearray()
+        self._transaction_mode_ = False
 
     def get_register(self, register: RegisterBase):
         if register.bits == 8:
@@ -89,7 +106,13 @@ class AVR_Base(object):
         return byte_H << 8 | byte_L
 
     def _set_8bit_register(self, addr, x):
-        self.serial.write(bytearray([ord("W"), addr, x]))
+        cmd = bytearray([ord("W"), addr, x])
+        if self._transaction_mode_:
+            self._buffer_ += cmd
+            if len(self._buffer_) > 63:
+                raise MemoryError("Buffer overflow: more than 64 bytes of data cached.")
+        else:
+            self.serial.write(cmd)
 
     def _set_16bit_register(self, addrL, x):
         byte_L = x & 0xff
