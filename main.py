@@ -1,9 +1,9 @@
 from avrpy.mega328P import Mega328P
 from avrpy import *
-
+from time import sleep
 
 if __name__ == "__main__":
-    avr = Mega328P("COM3")
+    avr = Mega328P("COM6")
 
     # Setup timer/counter 1 to work in fast PWM mode
     # Timer/counter control register A, B and C
@@ -31,3 +31,27 @@ if __name__ == "__main__":
 
     # Enable outputs on port B
     avr.DDRB = 0xff
+
+    sleep(2)
+    del(avr)
+
+    # This is demo how to use a context manager for a single transaction
+    avr = Mega328P("COM6")
+    with avr:
+        # Set pin A on bottom, clear on match. B is inverted
+        avr.TCCR1A = COM1A1 | COM1B1 | COM1B0 | WGM11
+        # Fast PWM mode, top=ICR1, prescaler 1024
+        avr.TCCR1B = WGM13 | WGM12 | CS12 | CS10
+
+        # Set PWM period to 383 ms
+        avr.ICR1 = int(383*ms*freq)
+        # Output A (pin 10) stays high for 52.3 ms
+        avr.OCR1A = int(52.3*ms*freq)
+        # Output B (pin 9) stays low for 74.5 ms
+        avr.OCR1B = int(74.5*ms*freq)
+
+        # Reset and start timer 1
+        avr.TCNT1 = 0
+
+        # Enable outputs on port B
+        avr.DDRB = 0xff
