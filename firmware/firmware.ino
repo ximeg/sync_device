@@ -1,14 +1,6 @@
-/*
-TODO:
- - troubleshoot individual functions in a MWE
- - then put them together
- - hardcode timer values to something that makes sense, e.g. 15ms injection,
-   then 8 ms delay, and 10 ms pulses - easy to see on osci.
-*/
-
 #include <stdint.h>
 #include <Arduino.h>
-#include <avr/iom328.h> // Comment this line out to compile and upload!
+// #include <avr/iom328.h> // Comment this line out to compile and upload!
 
 #define VERSION "0.2.0"
 
@@ -17,6 +9,22 @@ DEFINITIONS OF DATA TYPES AND STRUCTURES
 ***************************************/
 #pragma pack(push) /* push current alignment to stack */
 #pragma pack(1)    /* set alignment to 1 byte boundary */
+
+struct T1
+{
+  uint8_t t_cmd;             // equals to 't' or 'T'
+  uint16_t timer_period_cts; // timer period, in timer counts
+  union
+  {
+    struct
+    {
+      uint16_t n_frames;      // number of frames
+      uint16_t cam_delay_cts; // camera delay, in timer counts
+      uint16_t inj_delay_cts; // injection delay, in timer counts
+    };
+    uint8_t bytes_extra[6]; // 6-byte extension
+  };
+} timer1_cfg;
 
 union Data
 {
@@ -55,6 +63,8 @@ volatile bool up = false;
 volatile uint8_t timer1_status = 0;
 volatile uint16_t timer_period_cts = 0;
 
+volatile uint16_t n_acquired_frames = 0;
+
 /************
   INTERRUPTS
 ************/
@@ -63,7 +73,8 @@ enum T1STATUS
 {
   STOPPED = 0,
   SHUTTER_OPENING = 1,
-  ACQUISITION = 2
+  ACQUISITION = 2,
+  LAST_FRAME = 3,
 };
 
 // ISR
@@ -80,24 +91,82 @@ ISR(TIMER1_OVF_vect)
     // Emit signal to shutters
     DDRC |= bit(DDC3) | bit(DDC2) | bit(DDC1) | bit(DDC0);
 
-    // Timer 1 runs in fast PWM mode, we need to set the proper timings
-    ICR1 = timer_period_cts;
+    // Make sure that the timer output is set to zero
+    reset_OC1A();
 
-    // Set the timer to account for the camera/shutter delay
-    TCNT1 = timer_period_cts - data.cam_delay_cts;
-
-    // Enable OC1A output
-    DDRB |= bit(DDB1);
+    start_timer1();
     break;
 
   case T1STATUS::ACQUISITION:; // count pulses, stop the timer when reach n_frames
+    if (++n_acquired_frames >= timer1_cfg.n_frames && timer1_cfg.n_frames > 0)
+    {
+      ++timer1_status;
+
+      while (TCNT1 < OCR1A)
+      {
+        ; // Wait until timer reaches output compare match to have a clean signal
+      }
+
+      // Disable OC1A timer output to avoid extra trigger at the end of the last frame
+      DDRB &= ~bit(DDB1);
+    }
+    break;
+
+  case T1STATUS::LAST_FRAME:
+    // Disable timer 1 interrupts and stop timer
+    TIMSK1 &= ~bit(TOIE1);
+    stop_timer1();
+
+    // Close shutters
+    DDRC &= ~(bit(DDC3) | bit(DDC2) | bit(DDC1) | bit(DDC0));
     break;
   }
+
+  PINB = bit(PINB5);
 }
 
 /************
 PROGRAM LOGIC
 ************/
+
+const unsigned char TCCR1A_default = bit(COM1A1) | bit(WGM11);
+const unsigned char TCCR1B_default = bit(WGM13) | bit(WGM12) | bit(CS12) | bit(CS10);
+
+void reset_OC1A()
+{
+  TCCR1A = TCCR1A_default & ~bit(WGM10) & ~bit(WGM11);
+  TCCR1B = TCCR1B_default & ~bit(WGM12) & ~bit(WGM13);
+
+  // Set the OC1A pin to zero (datasheet section 15.7.3)
+  TCCR1C = bit(FOC1A);
+
+  // Restore timer state
+  TCCR1A = TCCR1A_default;
+  TCCR1B = TCCR1B_default;
+}
+
+void start_timer1()
+{
+  OCR1A = max(timer1_cfg.timer_period_cts >> 3, 1); // set pulse duration 1/8 of period
+  ICR1 = timer1_cfg.timer_period_cts;               // set timer period
+
+  // set the timer/counter value and introduce a delay
+  TCNT1 = timer1_cfg.timer_period_cts - timer1_cfg.cam_delay_cts;
+
+  DDRB |= bit(DDB1); // enable timer output
+  GTCCR = 0;         // let it run
+}
+
+void stop_timer1()
+{
+  // SET SHUTTER OUTPUTS
+  // PORTC = self._bitlist2int(self.shutter_pins, rev=True)
+
+  DDRB &= ~bit(DDB1);              // disable timer output
+  GTCCR = bit(TSM) | bit(PSRSYNC); // pause the timer
+  reset_OC1A();                    // make sure the OC1A pin state is zero
+  timer1_status = T1STATUS::STOPPED;
+}
 
 // the setup function runs once when you press reset or power the board
 void setup()
@@ -116,6 +185,8 @@ void setup()
   // Disable camera trigger output on PB1 and set it to zero (timer 1)
   PORTB &= ~bit(PORTB1);
   DDRB &= ~bit(DDB1);
+
+  stop_timer1();
 }
 
 void loop()
@@ -155,31 +226,33 @@ void loop()
 
       case 'T': // start timer 1
 
-        // OC1A goes down
-        // _reset_OC1A();
+        // Read the remaining data from the packet
+        charsRead = Serial.readBytes(data.bytes_extra, 6);
 
-        // _start_timer1()
+        // Create a copy of the packet
+        memcpy(&timer1_cfg, &data, sizeof(data));
+
         // Send trigger to fluidic system
         PORTC |= bit(PORTC4);
 
-        // Start timer 1 - waiting for fludic mixing
+        reset_OC1A();
+
         timer1_status = T1STATUS::SHUTTER_OPENING;
+        n_acquired_frames = 0;
 
-        TCCR1A = bit(WGM11) | bit(COM1A1);
-        TCCR1B = bit(WGM13) | bit(WGM12) | bit(CS12) | bit(CS10);
+        // Start timer 1 - waiting for fludic mixing
+        ICR1 = timer1_cfg.inj_delay_cts;
+        GTCCR = 0; // let it run
 
-        ICR1 = data.inj_delay_cts;
-        timer_period_cts = data.timer_period_cts;
-        OCR1A = max(timer_period_cts >> 4, 1);
-
-        // Enable the overflow interrupt (TIMER1_OVF_vect)
+        // Enable overflow interrupt (TIMER1_OVF_vect)
         TIMSK1 |= bit(TOIE1);
         interrupts();
-
         break;
+
       case 't': // stop timer 1
-        Serial.println("Stopping timer 1");
-        // _stop_timer1()
+        stop_timer1();
+        // Close shutters
+        DDRC &= ~(bit(DDC3) | bit(DDC2) | bit(DDC1) | bit(DDC0));
         break;
       }
     }

@@ -3,6 +3,7 @@ from enum import Enum
 from time import sleep
 from .__version__ import __version__
 from .constants import ms, MHz
+import ctypes
 
 
 class RegisterBase(Enum):
@@ -65,7 +66,7 @@ class AVR_Base(object):
                 )
 
         self.serial.flush()
-        sleep(50 * ms)
+        sleep(100 * ms)
 
         self._transaction_mode_ = False
         self._buffer_ = bytearray()
@@ -128,6 +129,22 @@ class AVR_Base(object):
         byte_H = x >> 8
         self._set_8bit_register(addrL + 1, byte_H)
         self._set_8bit_register(addrL, byte_L)
+
+    def start_trigger(self, exp_time_ms, n_frames=0, cam_delay_ms=0, inj_delay_ms=0):
+        uint16 = lambda x: bytes(ctypes.c_ushort(x))
+        uint16_cts = lambda time_ms: uint16(int(time_ms * ms * 16 * MHz / 1024))
+        self.serial.write(
+            bytearray(
+                b"T"
+                + uint16_cts(exp_time_ms)
+                + uint16(n_frames)
+                + uint16_cts(cam_delay_ms)
+                + uint16_cts(inj_delay_ms)
+            )
+        )
+
+    def stop_trigger(self):
+        self.serial.write(bytearray(b"t\00\00"))
 
 
 def define_AVR(RegisterList: RegisterBase):
