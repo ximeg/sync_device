@@ -1,4 +1,10 @@
-#define VERSION "0.1.0"
+#include <stdint.h>
+
+// Uncomment for IntelliSense to work
+#include <Arduino.h>
+#include <avr/iom328.h> // Comment this line out to compile and upload!
+
+#define VERSION "0.2.0"
 
 /***************************************
 DEFINITIONS OF DATA TYPES AND STRUCTURES
@@ -41,6 +47,16 @@ volatile uint8_t charsRead;
 volatile bool up = false;
 
 /************
+  INTERRUPTS
+************/
+
+// ISR
+ISR(TIMER1_OVF_vect)
+{
+  PORTC = 0XFF - PORTC;
+}
+
+/************
 PROGRAM LOGIC
 ************/
 
@@ -49,6 +65,13 @@ void setup()
 {
   Serial.begin(2000000);
   Serial.setTimeout(10); // ms
+
+  // Timer 1 output
+  pinMode(9, OUTPUT);
+  digitalWrite(9, LOW);
+
+  DDRC = 0xFF;
+  PORTC = 0;
 }
 
 // the loop function runs over and over again forever
@@ -78,21 +101,28 @@ void loop()
       case 'W':
       case 'w':
         // Write the value to the register with given address
+        *((uint8_t *)data.reg_addr) = data.reg_value;
+        break;
 
       case 'R':
       case 'r':
         // Read the value from the given register
+        Serial.write(*((uint8_t *)data.reg_addr));
+        break;
 
       case 'T': // start timer 1
-        Serial.readBytes(data.bytes_extra, 6);
-        Serial.print(" exp time:");
-        Serial.print(data.timer_period_cts);
-        Serial.print(" n frames:");
-        Serial.print(data.n_frames);
-        Serial.print(" camdelay:");
-        Serial.print(data.cam_delay_cts);
-        Serial.print(" injdelay:");
-        Serial.println(data.inj_delay_cts);
+        TCCR1A = bit(WGM11) | bit(COM1A1);
+        TCCR1B = bit(WGM13) | bit(WGM12) | bit(CS12) | bit(CS10);
+
+        ICR1 = data.timer_period_cts;
+        OCR1A = max(data.timer_period_cts >> 4, 1);
+
+        PORTC = 0xFF;
+
+        // Enable the overflow interrupt (TIMER1_OVF_vect)
+        TIMSK1 |= bit(TOIE1);
+        interrupts();
+
         break;
       case 't': // stop timer 1
         Serial.println("Stopping timer 1");
