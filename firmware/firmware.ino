@@ -1,6 +1,12 @@
-#include <stdint.h>
+/*
+TODO:
+ - troubleshoot individual functions in a MWE
+ - then put them together
+ - hardcode timer values to something that makes sense, e.g. 15ms injection,
+   then 8 ms delay, and 10 ms pulses - easy to see on osci.
+*/
 
-// Uncomment for IntelliSense to work
+#include <stdint.h>
 #include <Arduino.h>
 #include <avr/iom328.h> // Comment this line out to compile and upload!
 
@@ -46,14 +52,47 @@ union Data
 volatile uint8_t charsRead;
 volatile bool up = false;
 
+volatile uint8_t timer1_status = 0;
+volatile uint16_t timer_period_cts = 0;
+
 /************
   INTERRUPTS
 ************/
 
+enum T1STATUS
+{
+  STOPPED = 0,
+  SHUTTER_OPENING = 1,
+  ACQUISITION = 2
+};
+
 // ISR
 ISR(TIMER1_OVF_vect)
 {
-  PORTC = 0XFF - PORTC;
+  switch (timer1_status)
+  {
+  case T1STATUS::SHUTTER_OPENING:
+    ++timer1_status;
+
+    // Fluidic signal goes down
+    PORTC &= ~bit(PORTC4);
+
+    // Emit signal to shutters
+    DDRC |= bit(DDC3) | bit(DDC2) | bit(DDC1) | bit(DDC0);
+
+    // Timer 1 runs in fast PWM mode, we need to set the proper timings
+    ICR1 = timer_period_cts;
+
+    // Set the timer to account for the camera/shutter delay
+    TCNT1 = timer_period_cts - data.cam_delay_cts;
+
+    // Enable OC1A output
+    DDRB |= bit(DDB1);
+    break;
+
+  case T1STATUS::ACQUISITION:; // count pulses, stop the timer when reach n_frames
+    break;
+  }
 }
 
 /************
@@ -66,15 +105,19 @@ void setup()
   Serial.begin(2000000);
   Serial.setTimeout(10); // ms
 
-  // Timer 1 output
-  pinMode(9, OUTPUT);
-  digitalWrite(9, LOW);
-
-  DDRC = 0xFF;
+  // Enable shutter output on PORTC, pins 0-3
   PORTC = 0;
+  DDRC = 0;
+
+  // Enable fluidics trigger output on PORTC, pin 4
+  DDRC |= bit(DDC4);
+  PORTC &= ~bit(PORTC4);
+
+  // Disable camera trigger output on PB1 and set it to zero (timer 1)
+  PORTB &= ~bit(PORTB1);
+  DDRB &= ~bit(DDB1);
 }
 
-// the loop function runs over and over again forever
 void loop()
 {
   while (!Serial)
@@ -111,13 +154,23 @@ void loop()
         break;
 
       case 'T': // start timer 1
+
+        // OC1A goes down
+        // _reset_OC1A();
+
+        // _start_timer1()
+        // Send trigger to fluidic system
+        PORTC |= bit(PORTC4);
+
+        // Start timer 1 - waiting for fludic mixing
+        timer1_status = T1STATUS::SHUTTER_OPENING;
+
         TCCR1A = bit(WGM11) | bit(COM1A1);
         TCCR1B = bit(WGM13) | bit(WGM12) | bit(CS12) | bit(CS10);
 
-        ICR1 = data.timer_period_cts;
-        OCR1A = max(data.timer_period_cts >> 4, 1);
-
-        PORTC = 0xFF;
+        ICR1 = data.inj_delay_cts;
+        timer_period_cts = data.timer_period_cts;
+        OCR1A = max(timer_period_cts >> 4, 1);
 
         // Enable the overflow interrupt (TIMER1_OVF_vect)
         TIMSK1 |= bit(TOIE1);
@@ -126,6 +179,7 @@ void loop()
         break;
       case 't': // stop timer 1
         Serial.println("Stopping timer 1");
+        // _stop_timer1()
         break;
       }
     }
