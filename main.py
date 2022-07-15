@@ -6,9 +6,9 @@ COM = "COM3"
 
 if __name__ == "__main__":
     avr = Mega328P(COM)
-    import ctypes
 
-    w = lambda x: bytes(ctypes.c_ushort(x))
+    print(avr.serial.read_all())
+    sleep(0.5)
     avr.PORTC |= PC0 | PC1 | PC3
     # avr.serial.write(bytearray(b"T" + w(2800) + w(12394) + w(1000) + w(35000)))
 

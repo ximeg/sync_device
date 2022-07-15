@@ -1,6 +1,6 @@
 #include <stdint.h>
 #include <Arduino.h>
-// #include <avr/iom328.h> // Comment this line out to compile and upload!
+#include <avr/iom328.h> // Comment this line out to compile and upload!
 
 #define VERSION "0.2.0"
 
@@ -148,10 +148,11 @@ void reset_OC1A()
 void start_timer1()
 {
   OCR1A = max(timer1_cfg.timer_period_cts >> 3, 1); // set pulse duration 1/8 of period
-  ICR1 = timer1_cfg.timer_period_cts;               // set timer period
+  ICR1 = max(timer1_cfg.timer_period_cts, 2);       // set timer period
 
-  // set the timer/counter value and introduce a delay
-  TCNT1 = timer1_cfg.timer_period_cts - timer1_cfg.cam_delay_cts;
+  // Ensure that the delay is at least two counts to avoid overfill
+  // Set the timer/counter value and introduce a delay
+  TCNT1 = timer1_cfg.timer_period_cts - max(timer1_cfg.cam_delay_cts, 2);
 
   DDRB |= bit(DDB1); // enable timer output
   GTCCR = 0;         // let it run
@@ -212,19 +213,23 @@ void loop()
     {
       switch (data.cmd)
       {
+      // Write the value to the register with given address
       case 'W':
       case 'w':
-        // Write the value to the register with given address
         *((uint8_t *)data.reg_addr) = data.reg_value;
         break;
 
+      // Read the value from the given register
       case 'R':
       case 'r':
-        // Read the value from the given register
         Serial.write(*((uint8_t *)data.reg_addr));
         break;
 
-      case 'T': // start timer 1
+      // start timer 1
+      case 'T':
+      case 't':
+        if (data.timer_period_cts == 0)
+          break; // don't bother, period is zero
 
         // Read the remaining data from the packet
         charsRead = Serial.readBytes(data.bytes_extra, 6);
@@ -241,15 +246,32 @@ void loop()
         n_acquired_frames = 0;
 
         // Start timer 1 - waiting for fludic mixing
-        ICR1 = timer1_cfg.inj_delay_cts;
-        GTCCR = 0; // let it run
+        ICR1 = max(timer1_cfg.inj_delay_cts, 2);
 
         // Enable overflow interrupt (TIMER1_OVF_vect)
         TIMSK1 |= bit(TOIE1);
         interrupts();
+
+        // Rest the timer and let it run
+        TCNT1 = 0;
+        GTCCR = 0;
         break;
 
-      case 't': // stop timer 1
+      case 'E':
+      case 'e':
+        if (data.timer_period_cts == 0)
+          break; // don't bother, period is zero
+
+        // change the timer period
+        timer1_cfg.timer_period_cts = data.timer_period_cts;
+        // no camera delay - immediate change
+        timer1_cfg.cam_delay_cts = 0;
+        start_timer1();
+        break;
+
+      // stop timer 1
+      case 'Q':
+      case 'q':
         stop_timer1();
         // Close shutters
         DDRC &= ~(bit(DDC3) | bit(DDC2) | bit(DDC1) | bit(DDC0));

@@ -144,7 +144,12 @@ class AVR_Base(object):
         )
 
     def stop_trigger(self):
-        self.serial.write(bytearray(b"t\00\00"))
+        self.serial.write(bytearray(b"Q\00\00"))
+
+    def set_exposure(self, exp_time_ms):
+        uint16 = lambda x: bytes(ctypes.c_ushort(x))
+        uint16_cts = lambda time_ms: uint16(int(time_ms * ms * 16 * MHz / 1024))
+        self.serial.write(bytearray(b"E" + uint16_cts(exp_time_ms)))
 
 
 def define_AVR(RegisterList: RegisterBase):
