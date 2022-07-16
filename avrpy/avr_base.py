@@ -1,3 +1,4 @@
+from cProfile import run
 import serial
 from enum import Enum
 from time import sleep
@@ -65,7 +66,7 @@ class AVR_Base(object):
                     f"Version mismatch: driver {__version__} != firmware {v}"
                 )
 
-        self.serial.flush()
+        self.serial.reset_input_buffer()
         sleep(100 * ms)
 
         self._transaction_mode_ = False
@@ -131,6 +132,9 @@ class AVR_Base(object):
         self._set_8bit_register(addrL, byte_L)
 
     def start_trigger(self, exp_time_ms, n_frames=0, cam_delay_ms=0, inj_delay_ms=0):
+        """
+        Configure and start the camera trigger (timer/counter 1).
+        """
         uint16 = lambda x: bytes(ctypes.c_ushort(x))
         uint16_cts = lambda time_ms: uint16(int(time_ms * ms * 16 * MHz / 1024))
         self.serial.write(
@@ -144,12 +148,39 @@ class AVR_Base(object):
         )
 
     def stop_trigger(self):
-        self.serial.write(bytearray(b"Q\00\00"))
+        """
+        Stop running camera trigger
+        """
+        self.serial.write(bytearray(b"Q\x00\x00"))
 
     def set_exposure(self, exp_time_ms):
+        """
+        Set exposure time of the camera trigger. Does not start or stop the trigger,
+        but would immediate change interrup a running trigger and change its period
+        on the fly.
+        """
         uint16 = lambda x: bytes(ctypes.c_ushort(x))
         uint16_cts = lambda time_ms: uint16(int(time_ms * ms * 16 * MHz / 1024))
         self.serial.write(bytearray(b"E" + uint16_cts(exp_time_ms)))
+
+    def _bitlist2int(self, bitlist, rev=False):
+        """Convert list of bits into integer. Example: [1, 1, 0, 1, 0] => b11011"""
+        out = 0
+        if rev:
+            bitlist = reversed(bitlist)
+        for bit in bitlist:
+            out = (out << 1) | bit
+        return out
+
+    def set_shutters(self, running, idle=None):
+        """
+        Set shutter state for running and idle cases.
+        If idle is not provided, it will be the inverse of running.
+        Expected input: list of four values, order: cy2, cy3, cy5, cy7.
+        """
+        r = self._bitlist2int(running, rev=True)
+        i = self._bitlist2int(idle, rev=True) if idle is not None else 0xFF - r
+        self.serial.write(bytearray([ord("S"), r, i]))
 
 
 def define_AVR(RegisterList: RegisterBase):

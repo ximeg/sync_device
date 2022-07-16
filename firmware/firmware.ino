@@ -7,6 +7,10 @@
 /***************************************
 DEFINITIONS OF DATA TYPES AND STRUCTURES
 ***************************************/
+
+// Bitmask for shutter outputs in PORTC
+#define SHUTTER_MASK 0b00001111
+
 #pragma pack(push) /* push current alignment to stack */
 #pragma pack(1)    /* set alignment to 1 byte boundary */
 
@@ -31,9 +35,20 @@ union Data
   // 3-byte data packet used for normal communication
   struct
   {
-    uint8_t cmd;       // equals to 'r', 'R', 'w' or 'W'
-    uint8_t reg_addr;  // address of register to read/write
-    uint8_t reg_value; // value of the register to write
+    uint8_t cmd; // equals to 'r', 'R', 'w' or 'W'
+    union
+    {
+      struct
+      {
+        uint8_t reg_addr;  // address of register to read/write
+        uint8_t reg_value; // value of the register to write
+      };
+      struct
+      {
+        uint8_t shutter_running; // state of shutters when running
+        uint8_t shutter_idle;    // state of shutters when idle
+      };
+    };
   };
   // extended data packet used to setup timer 1
   struct
@@ -57,18 +72,6 @@ union Data
 
 #pragma pack(pop) /* restore original alignment from stack */
 
-volatile uint8_t charsRead;
-volatile bool up = false;
-
-volatile uint8_t timer1_status = 0;
-volatile uint16_t timer_period_cts = 0;
-
-volatile uint16_t n_acquired_frames = 0;
-
-/************
-  INTERRUPTS
-************/
-
 enum T1STATUS
 {
   STOPPED = 0,
@@ -76,6 +79,21 @@ enum T1STATUS
   ACQUISITION = 2,
   LAST_FRAME = 3,
 };
+
+volatile uint8_t charsRead;
+volatile bool up = false;
+
+volatile uint8_t shutter_running = 0xFF & SHUTTER_MASK;
+volatile uint8_t shutter_idle = 0;
+
+volatile uint8_t timer1_status = T1STATUS::STOPPED;
+volatile uint16_t timer_period_cts = 0;
+
+volatile uint16_t n_acquired_frames = 0;
+
+/************
+  INTERRUPTS
+************/
 
 // ISR
 ISR(TIMER1_OVF_vect)
@@ -88,8 +106,7 @@ ISR(TIMER1_OVF_vect)
     // Fluidic signal goes down
     PORTC &= ~bit(PORTC4);
 
-    // Emit signal to shutters
-    DDRC |= bit(DDC3) | bit(DDC2) | bit(DDC1) | bit(DDC0);
+    write_shutter();
 
     // Make sure that the timer output is set to zero
     reset_OC1A();
@@ -116,9 +133,6 @@ ISR(TIMER1_OVF_vect)
     // Disable timer 1 interrupts and stop timer
     TIMSK1 &= ~bit(TOIE1);
     stop_timer1();
-
-    // Close shutters
-    DDRC &= ~(bit(DDC3) | bit(DDC2) | bit(DDC1) | bit(DDC0));
     break;
   }
 
@@ -131,6 +145,12 @@ PROGRAM LOGIC
 
 const unsigned char TCCR1A_default = bit(COM1A1) | bit(WGM11);
 const unsigned char TCCR1B_default = bit(WGM13) | bit(WGM12) | bit(CS12) | bit(CS10);
+
+void write_shutter()
+{
+  PORTC &= ~SHUTTER_MASK;
+  PORTC |= (timer1_status == T1STATUS::STOPPED) ? shutter_idle : shutter_running;
+}
 
 void reset_OC1A()
 {
@@ -147,7 +167,7 @@ void reset_OC1A()
 
 void start_timer1()
 {
-  OCR1A = max(timer1_cfg.timer_period_cts >> 3, 1); // set pulse duration 1/8 of period
+  OCR1A = max(timer1_cfg.timer_period_cts >> 4, 1); // set pulse duration 1/8 of period
   ICR1 = max(timer1_cfg.timer_period_cts, 2);       // set timer period
 
   // Ensure that the delay is at least two counts to avoid overfill
@@ -160,13 +180,11 @@ void start_timer1()
 
 void stop_timer1()
 {
-  // SET SHUTTER OUTPUTS
-  // PORTC = self._bitlist2int(self.shutter_pins, rev=True)
-
+  timer1_status = T1STATUS::STOPPED;
+  write_shutter();
   DDRB &= ~bit(DDB1);              // disable timer output
   GTCCR = bit(TSM) | bit(PSRSYNC); // pause the timer
   reset_OC1A();                    // make sure the OC1A pin state is zero
-  timer1_status = T1STATUS::STOPPED;
 }
 
 // the setup function runs once when you press reset or power the board
@@ -176,8 +194,7 @@ void setup()
   Serial.setTimeout(10); // ms
 
   // Enable shutter output on PORTC, pins 0-3
-  PORTC = 0;
-  DDRC = 0;
+  DDRC |= SHUTTER_MASK;
 
   // Enable fluidics trigger output on PORTC, pin 4
   DDRC |= bit(DDC4);
@@ -223,6 +240,14 @@ void loop()
       case 'R':
       case 'r':
         Serial.write(*((uint8_t *)data.reg_addr));
+        break;
+
+      // Remember the shutter state (keeps only 4 bits)
+      case 'S':
+      case 's':
+        shutter_running = data.shutter_running & SHUTTER_MASK;
+        shutter_idle = data.shutter_idle & SHUTTER_MASK;
+        write_shutter();
         break;
 
       // start timer 1
@@ -273,8 +298,6 @@ void loop()
       case 'Q':
       case 'q':
         stop_timer1();
-        // Close shutters
-        DDRC &= ~(bit(DDC3) | bit(DDC2) | bit(DDC1) | bit(DDC0));
         break;
       }
     }
