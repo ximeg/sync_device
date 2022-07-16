@@ -14,6 +14,7 @@ DEFINITIONS OF DATA TYPES AND STRUCTURES
 #pragma pack(push) /* push current alignment to stack */
 #pragma pack(1)    /* set alignment to 1 byte boundary */
 
+// TODO: this structure repeats itself - boilerplate
 struct T1
 {
   uint8_t t_cmd;             // equals to 't' or 'T'
@@ -35,7 +36,7 @@ union Data
   // 3-byte data packet used for normal communication
   struct
   {
-    uint8_t cmd; // equals to 'r', 'R', 'w' or 'W'
+    uint8_t cmd; // TODO: it's redundant
     union
     {
       struct
@@ -53,7 +54,7 @@ union Data
   // extended data packet used to setup timer 1
   struct
   {
-    uint8_t t_cmd;             // equals to 't' or 'T'
+    uint8_t t_cmd;             // equals to 't' or 'T'. TODO: redundant
     uint16_t timer_period_cts; // timer period, in timer counts
     union
     {
