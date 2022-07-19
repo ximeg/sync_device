@@ -107,7 +107,7 @@ class AVR_Base(object):
             ValueError(f"Unknown register {register}")
 
     def _get_8bit_register(self, addr):
-        self.serial.flush()
+        self.serial.reset_input_buffer()
         self.serial.write(bytearray([ord("R"), addr, 0]))
         return ord(self.serial.read(1))
 
