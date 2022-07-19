@@ -13,23 +13,14 @@
 HELPER FUNCTIONS
 ****************/
 
-inline void write_camera_pin(int value)
-{
-  if (value)
-    CAMERA_PORT |= bit(CAMERA_PIN);
-  else
-    CAMERA_PORT &= ~bit(CAMERA_PIN);
-}
+inline void camera_pin_up() { CAMERA_PORT |= bit(CAMERA_PIN); }
+inline void camera_pin_down() { CAMERA_PORT &= ~bit(CAMERA_PIN); }
 
-inline void write_fluidic_pin(int value)
-{
-  if (value)
-    FLUIDIC_PORT |= bit(FLUIDIC_PIN);
-  else
-    FLUIDIC_PORT &= ~bit(FLUIDIC_PIN);
-}
+inline void fluidic_pin_up() { FLUIDIC_PORT |= bit(FLUIDIC_PIN); }
+inline void fluidic_pin_down() { FLUIDIC_PORT &= ~bit(FLUIDIC_PIN); }
 
-inline void reset_timer1(){
+inline void reset_timer1()
+{
   // WGM mode 14, prescaler clk/1024 (datasheet tables 15-5 & 15-6)
   TCCR1A = bit(WGM11);
   TCCR1B = bit(WGM12) | bit(WGM13) | bit(CS10) | bit(CS12);
@@ -38,7 +29,8 @@ inline void reset_timer1(){
   TIMSK1 = 0;
 }
 
-inline void start_timer1(){
+inline void start_timer1()
+{
   // Read and set values for ICR1, OCR1A, OCR1B from global vars...
 
   // Enable interrupts for overflow, match A, and match B
@@ -57,15 +49,14 @@ inline void write_shutters(uint8_t value)
   SHUTTERS_PORT |= value;
 }
 
-
-uint8_t decode_shutter_bits(uint8_t rx_bits){
+uint8_t decode_shutter_bits(uint8_t rx_bits)
+{
   uint8_t cy2_bit = (rx_bits & 1) > 0;
   uint8_t cy3_bit = (rx_bits & 2) > 0;
   uint8_t cy5_bit = (rx_bits & 4) > 0;
   uint8_t cy7_bit = (rx_bits & 8) > 0;
   return (cy2_bit << CY2_PIN) | (cy3_bit << CY3_PIN) | (cy5_bit << CY5_PIN) | (cy7_bit << CY7_PIN);
 }
-
 
 /************
 INTERRUPTS
@@ -86,7 +77,7 @@ ISR(TIMER1_OVF_vect)
   case STATUS::SKIP_FRAME:
     write_shutters(0);
     break;
-  
+
   case STATUS::ALEX_FRAME:
     // fancy BGR switching here... Later...
     break;
@@ -95,7 +86,6 @@ ISR(TIMER1_OVF_vect)
     write_shutters(g_shutter.idle);
     reset_timer1();
     break;
-
 
   default: // do nothing;
     break;
@@ -106,9 +96,8 @@ ISR(TIMER1_OVF_vect)
   {
     n_acquired_frames = 0;
     system_status = STATUS::IDLE; // set status for the next frame
-    write_fluidic_pin(1);
+    fluidic_pin_up();
   }
-
 }
 
 // This interrupt sends raising edge of the camera trigger to start the acquisition
@@ -116,7 +105,7 @@ ISR(TIMER1_COMPA_vect)
 {
   if (system_status != STATUS::SKIP_FRAME)
   {
-    write_camera_pin(1);
+    camera_pin_up();
     n_acquired_frames++;
   }
 }
@@ -124,43 +113,41 @@ ISR(TIMER1_COMPA_vect)
 // Generate falling edge of the camera trigger. Nothing else, really
 ISR(TIMER1_COMPB_vect)
 {
-  write_camera_pin(0);
+  camera_pin_down();
 }
-
 
 /************
 SYSTEM STARTUP
 ************/
 void setup()
 {
-  {// Setup serial port
-  Serial.begin(2000000);
-  Serial.setTimeout(10); // ms
+  { // Setup serial port
+    Serial.begin(2000000);
+    Serial.setTimeout(10); // ms
   }
 
-  {// Setup output ports
-  FLUIDIC_DDR |= bit(FLUIDIC_PIN);
-  FLUIDIC_PORT &= ~bit(FLUIDIC_PIN);
+  { // Setup output ports
+    FLUIDIC_DDR |= bit(FLUIDIC_PIN);
+    FLUIDIC_PORT &= ~bit(FLUIDIC_PIN);
 
-  CAMERA_DDR |= bit(CAMERA_PIN);
-  CAMERA_PORT &= ~bit(CAMERA_PIN);
+    CAMERA_DDR |= bit(CAMERA_PIN);
+    CAMERA_PORT &= ~bit(CAMERA_PIN);
 
-  SHUTTERS_DDR |= SHUTTERS_MASK;
-  SHUTTERS_PORT &= ~SHUTTERS_MASK;
-  }
-  
-  {// Configure timer 1 and setup interrupt
-  reset_timer1();
-  ICR1 = 10000; // timer period (overflow interrupt)
-  OCR1A = 1000; // first match interrupt
-  OCR1B = 3000; // second match interrupt
- 
-  interrupts();
-  start_timer1();
+    SHUTTERS_DDR |= SHUTTERS_MASK;
+    SHUTTERS_PORT &= ~SHUTTERS_MASK;
   }
 
+  { // Configure timer 1 and setup interrupt
+    reset_timer1();
+    ICR1 = 10000; // timer period (overflow interrupt)
+    OCR1A = 1000; // first match interrupt
+    OCR1B = 3000; // second match interrupt
 
-  g_timer1.n_frames = 4;  // TODO: FIXME
+    interrupts();
+    start_timer1();
+  }
+
+  g_timer1.n_frames = 4; // TODO: FIXME
   g_shutter.idle = bit(CY2_PIN) | bit(CY7_PIN);
 }
 
@@ -170,7 +157,9 @@ EVENT HANDLING
 void loop()
 {
   // Wait until the serial port is ready
-  while (!Serial){} 
+  while (!Serial)
+  {
+  }
 
   if (!system_is_up)
   {
