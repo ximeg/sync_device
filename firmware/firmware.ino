@@ -69,11 +69,16 @@ inline void reset_timer1()
 
 inline void start_timer1()
 {
-  // Read and set values for ICR1, OCR1A, OCR1B from global vars...
-  ICR1 = g_timer1.timer_period_cts;
+  // Set timer period to requested value, and at least 3 counts
+  ICR1 = max(g_timer1.timer_period_cts, 3);
+
+  // Set delay between shutter and camera
   OCR1A = g_timer1.shutter_delay_cts;
+  OCR1A = min(OCR1A, ICR1 - 2); // Sanity check: make sure OCR1A is lower than ICR1
+
   // 12.5% duty cycle, at least 1 count, at most 10ms
   OCR1B = OCR1A + max(min(ICR1 >> 3, 156), 1);
+  OCR1B = min(OCR1B, ICR1 - 1); // Sanity check: make sure OCR1B is lower than ICR1
 
   // Clear interrupt flags
   TIFR1 = 0xFF;
@@ -238,8 +243,11 @@ ISR(TIMER1_OVF_vect)
     break;
 
   case STATUS::IDLE:
-    write_shutters(g_shutter.idle);
     reset_timer1();
+
+    // Since we delayed the camera, we should wait more here
+    delayMicroseconds(g_timer1.shutter_delay_cts << 6);
+    write_shutters(g_shutter.idle);
     Serial.println("DONE");
     break;
 
@@ -262,7 +270,7 @@ ISR(TIMER1_COMPB_vect)
 {
   // Generate falling edge of the camera trigger.
   camera_pin_down();
-  fluidic_pin_down();
+
   // Decide what to do during the next timer cycle.
   prepare_next_frame();
 }
@@ -336,11 +344,14 @@ void loop()
 
           Serial.println("START");
           memcpy(&g_timer1, &data.T, sizeof(g_timer1));
+
           // Send trigger to fluidic system
           fluidic_pin_up();
 
-          // TODO: use timer 1 and an additional state??
-          delay(g_timer1.injection_delay_cts >> 4);
+          // Wait for given number of 64us intervals (up to 1023!)
+          uint16_t d = g_timer1.injection_delay_cts;
+          if (d > 2)
+            delayMicroseconds((d - 2) << 6);
 
           n_acquired_frames = 0;
 
@@ -348,6 +359,7 @@ void loop()
           system_status = is_alex_active() ? STATUS::ALEX_FRAME : STATUS::NORMAL_FRAME;
 
           start_timer1();
+          fluidic_pin_down();
           break;
         }
 
