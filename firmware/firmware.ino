@@ -112,11 +112,11 @@ inline void normal2skip()
 // Condition: enough frames skipped
 inline void skip2normal()
 {
-  if (system_status == STATUS::SKIP_FRAME)
+  if (system_status == STATUS::SKIP_FRAME && !is_alex_active())
   {
     if (skipped_count >= g_timelapse.skip)
     {
-      system_status = STATUS::NORMAL_FRAME; // Next frame is normal (or ALEX!?)
+      system_status = STATUS::NORMAL_FRAME; // Next frame is normal
     }
   }
 }
@@ -139,6 +139,31 @@ inline void alex2idle()
   }
 }
 
+// Condition: last spectral channel acquired and timelapse is active
+inline void alex2skip()
+{
+  if (system_status == STATUS::ALEX_FRAME && g_timelapse.skip > 0)
+  {
+    if (alex_laser_i == 0) // it resets at the end of the cycle
+    {
+      skipped_count = 0;
+      system_status = STATUS::SKIP_FRAME; // We should skip the next frame
+    }
+  }
+}
+
+// Condition: enough frames skipped and ALEX is active
+inline void skip2alex()
+{
+  if (system_status == STATUS::SKIP_FRAME && is_alex_active())
+  {
+    if (skipped_count >= g_timelapse.skip)
+    {
+      system_status = STATUS::ALEX_FRAME; // Next frame is ALEX
+    }
+  }
+}
+
 /**
  * @brief Evaluate all global variables and prepare the system to process the next timer event
  *
@@ -154,6 +179,8 @@ void prepare_next_frame()
   normal2skip();
   skip2normal();
   alex2idle();
+  alex2skip();
+  skip2alex();
 }
 
 /*********
@@ -172,7 +199,6 @@ ISR(TIMER1_OVF_vect)
   {
   case STATUS::NORMAL_FRAME:
     write_shutters(g_shutter.active);
-    // Check if ALEX is active?
     break;
 
   case STATUS::SKIP_FRAME:
@@ -221,7 +247,7 @@ ISR(TIMER1_COMPB_vect)
 {
   // Generate falling edge of the camera trigger.
   camera_pin_down();
-
+  // Decide what to do during the next timer cycle.
   prepare_next_frame();
 }
 
@@ -234,9 +260,9 @@ void setup()
   // ======================
   // TODO: this is a crutch
   // ======================
-  g_timer1.n_frames = 2;
+  g_timer1.n_frames = 3;
   g_shutter.idle = 0; // bit(CY2_PIN) | bit(CY7_PIN);
-  g_timelapse.skip = 0;
+  g_timelapse.skip = 2;
   g_ALEX.mask = 0b1111;
   // END of TODO
 
