@@ -16,6 +16,7 @@ const uint8_t CY2_PIN = PORT0;
 const uint8_t CY3_PIN = PORT1;
 const uint8_t CY5_PIN = PORT2;
 const uint8_t CY7_PIN = PORT3;
+const uint8_t SHUTTERS_MASK = bit(CY2_PIN) | bit(CY3_PIN) | bit(CY5_PIN) | bit(CY7_PIN);
 #define SHUTTERS_PORT PORTC
 #define SHUTTERS_DDR DDRC
 
@@ -111,12 +112,15 @@ SYSTEM STATUS VARIABLES
 
 bool system_is_up = false;
 
-enum T1
+volatile uint16_t n_acquired_frames = 0;
+
+enum STATUS
 {
-    STOPPED = 0,
-    FIRST_FRAME = 1,
-    NORMAL_FRAME = 2,
-    SKIP_FRAME = 3,
-    ALEX_FRAME = 4,
-    LAST_FRAME = 5,
+    IDLE = 0,
+    NORMAL_FRAME = 1,
+    SKIP_FRAME = 2,
+    ALEX_FRAME = 3,
+    LAST_FRAME = 4,
 };
+
+uint8_t system_status = STATUS::IDLE;

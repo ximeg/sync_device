@@ -49,29 +49,77 @@ inline void start_timer1(){
 
   // Let it run
   GTCCR = 0;
+  system_status = STATUS::NORMAL_FRAME;
 }
+
+inline void write_shutters(uint8_t value)
+{
+  SHUTTERS_PORT &= ~SHUTTERS_MASK;
+  SHUTTERS_PORT |= value;
+}
+
 
 
 /************
 INTERRUPTS
 ************/
 
+// Timer overflow. This interrupt is called at the beginning of a frame and
+// is usually responsible for control of the shutters that need to be
+// opened/closed just a moment before the camera is triggered
+// Additionally, it can be used to setup other things related to this frame
 ISR(TIMER1_OVF_vect)
 {
-  // toggle shutter
-  PINC |= 0xF;
+  switch (system_status)
+  {
+  case STATUS::NORMAL_FRAME:
+    write_shutters(g_shutter.active);
+    break;
+
+  case STATUS::SKIP_FRAME:
+    write_shutters(0);
+    break;
+  
+  case STATUS::ALEX_FRAME:
+    // fancy BGR switching here... Later...
+    break;
+
+  case STATUS::LAST_FRAME:
+    write_shutters(g_shutter.idle);
+    break;
+
+  default: // do nothing;
+    break;
+  }
+
+  // Check number of acquired frames
+  if (n_acquired_frames >= g_timer1.n_frames)
+  {
+    system_status = STATUS::LAST_FRAME;
+  }
+
 }
 
-
+// This interrupt sends raising edge of the camera trigger to start the acquisition
 ISR(TIMER1_COMPA_vect)
 {
-write_camera_pin(1);
+  switch (system_status)
+  {
+  case STATUS::NORMAL_FRAME:
+  case STATUS::ALEX_FRAME:
+    write_camera_pin(1);
+    n_acquired_frames++;
+    break;
+  
+  default: // do nothing;
+    break;
+  }
 }
 
+// Generate falling edge of the camera trigger. Nothing else, really
 ISR(TIMER1_COMPB_vect)
 {
-  // Generate falling edge of the camera trigger
-write_camera_pin(0);
+  write_camera_pin(0);
 }
 
 
@@ -105,6 +153,10 @@ void setup()
   interrupts();
   start_timer1();
   }
+
+
+  g_timer1.n_frames = 4;  // TODO: FIXME
+  g_shutter.idle = 0b0110;
 }
 
 /************
