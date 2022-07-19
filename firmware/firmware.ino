@@ -30,25 +30,24 @@ inline void write_fluidic_pin(int value)
 }
 
 inline void reset_timer1(){
-  // Pause timer 1
-  GTCCR = PSRSYNC | TSM;
-
   // WGM mode 14, prescaler clk/1024 (datasheet tables 15-5 & 15-6)
   TCCR1A = bit(WGM11);
   TCCR1B = bit(WGM12) | bit(WGM13) | bit(CS10) | bit(CS12);
 
-  // Enable interrupts for overflow, match A, and match B
-  TIMSK1 = bit(TOIE1) | bit(OCIE1A) | bit(OCIE1B);
-
-  // Reset the timer
-  TCNT1 = 0;
+  // Disable timer 1 interrupts
+  TIMSK1 = 0;
 }
 
 inline void start_timer1(){
   // Read and set values for ICR1, OCR1A, OCR1B from global vars...
 
-  // Let it run
+  // Enable interrupts for overflow, match A, and match B
+  TIMSK1 = bit(TOIE1) | bit(OCIE1A) | bit(OCIE1B);
+
+  // Reset the timer and make sure it is not paused
   GTCCR = 0;
+  TCNT1 = 0;
+
   system_status = STATUS::NORMAL_FRAME;
 }
 
@@ -58,6 +57,14 @@ inline void write_shutters(uint8_t value)
   SHUTTERS_PORT |= value;
 }
 
+
+uint8_t decode_shutter_bits(uint8_t rx_bits){
+  uint8_t cy2_bit = (rx_bits & 1) > 0;
+  uint8_t cy3_bit = (rx_bits & 2) > 0;
+  uint8_t cy5_bit = (rx_bits & 4) > 0;
+  uint8_t cy7_bit = (rx_bits & 8) > 0;
+  return (cy2_bit << CY2_PIN) | (cy3_bit << CY3_PIN) | (cy5_bit << CY5_PIN) | (cy7_bit << CY7_PIN);
+}
 
 
 /************
@@ -84,18 +91,21 @@ ISR(TIMER1_OVF_vect)
     // fancy BGR switching here... Later...
     break;
 
-  case STATUS::LAST_FRAME:
+  case STATUS::IDLE:
     write_shutters(g_shutter.idle);
+    reset_timer1();
     break;
+
 
   default: // do nothing;
     break;
   }
 
   // Check number of acquired frames
-  if (n_acquired_frames >= g_timer1.n_frames)
+  if (n_acquired_frames >= g_timer1.n_frames - 1)
   {
-    system_status = STATUS::LAST_FRAME;
+    n_acquired_frames = 0;
+    system_status = STATUS::IDLE; // set status for the next frame
     write_fluidic_pin(1);
   }
 
@@ -104,16 +114,10 @@ ISR(TIMER1_OVF_vect)
 // This interrupt sends raising edge of the camera trigger to start the acquisition
 ISR(TIMER1_COMPA_vect)
 {
-  switch (system_status)
+  if (system_status != STATUS::SKIP_FRAME)
   {
-  case STATUS::NORMAL_FRAME:
-  case STATUS::ALEX_FRAME:
     write_camera_pin(1);
     n_acquired_frames++;
-    break;
-  
-  default: // do nothing;
-    break;
   }
 }
 
@@ -195,6 +199,20 @@ void loop()
       case 'r':
         // Read the value from the given register
         Serial.write(MEM_IO_8bit(data.R.addr));
+        break;
+
+      // Remember the shutter state (keeps only 4 bits)
+      case 'S':
+      case 's':
+        g_shutter.active = decode_shutter_bits(data.S.active);
+        g_shutter.idle = decode_shutter_bits(data.S.idle);
+
+        if (system_status == STATUS::IDLE)
+          write_shutters(g_shutter.idle);
+
+        if (system_status == STATUS::NORMAL_FRAME)
+          write_shutters(g_shutter.active);
+
         break;
       }
     }

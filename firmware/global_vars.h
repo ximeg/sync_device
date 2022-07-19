@@ -120,7 +120,6 @@ enum STATUS
     NORMAL_FRAME = 1,
     SKIP_FRAME = 2,
     ALEX_FRAME = 3,
-    LAST_FRAME = 4,
 };
 
 uint8_t system_status = STATUS::IDLE;
