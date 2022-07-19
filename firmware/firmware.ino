@@ -50,6 +50,26 @@ uint8_t decode_shutter_bits(uint8_t rx_bits)
   return (cy2_bit << CY2_PIN) | (cy3_bit << CY3_PIN) | (cy5_bit << CY5_PIN) | (cy7_bit << CY7_PIN);
 }
 
+inline void trigger_fluidics()
+{
+  // Send trigger to fluidic system
+  fluidic_pin_up();
+
+  // Wait for given number of 64us intervals (up to 1023!)
+  uint16_t d = g_timer1.injection_delay_cts;
+  if (d > 2 && d < 156)
+  {
+    delayMicroseconds((d - 2) << 6);
+    fluidic_pin_down();
+  }
+  else
+  {
+    delayMicroseconds(10000);
+    fluidic_pin_down();
+    delay(d >> 4);
+  }
+}
+
 inline void reset_timer1()
 {
   // WGM mode 14, prescaler clk/1024 (datasheet tables 15-5 & 15-6)
@@ -351,13 +371,7 @@ void loop()
           Serial.println("START");
           memcpy(&g_timer1, &data.T, sizeof(g_timer1));
 
-          // Send trigger to fluidic system
-          fluidic_pin_up();
-
-          // Wait for given number of 64us intervals (up to 1023!)
-          uint16_t d = g_timer1.injection_delay_cts;
-          if (d > 2)
-            delayMicroseconds((d - 2) << 6);
+          trigger_fluidics();
 
           n_acquired_frames = 0;
 
