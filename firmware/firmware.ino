@@ -1,3 +1,5 @@
+#define VERSION "0.2.0"
+
 #include <stdint.h>
 #include <Arduino.h>
 
@@ -18,13 +20,14 @@ INTERRUPTS
 ISR(TIMER1_OVF_vect)
 {
   // TOGGLE PORTC - it works!
-  PINC = 0xFF;
+  PORTC = 0xFF;
 
   // TODO: See what's the current status of the timer and select the corresponding action
 }
 
 ISR(TIMER1_COMPA_vect)
 {
+  PORTC = 0;
   PINB = 0xFF;
 }
 
@@ -41,8 +44,8 @@ void setup()
   DDRB = 0xFF;
 
   // Start timer 1 and setup interrupt
-  ICR1 = 600;
-  OCR1A = 570;
+  ICR1 = 6000;
+  OCR1A = 150;
   TCCR1A = bit(WGM11);
   TCCR1B = bit(WGM12) | bit(WGM13) | bit(CS10) | bit(CS12);
   TIMSK1 = bit(TOIE1) | bit(OCIE1A);
@@ -79,13 +82,13 @@ void loop()
       case 'W':
       case 'w':
         // Write the value to the register with given address
-        *((uchar *)data.R.addr) = data.R.value;
+        *((uint8_t *)data.R.addr) = data.R.value;
         break;
 
       case 'R':
       case 'r':
         // Read the value from the given register
-        Serial.write(*((uchar *)data.R.addr));
+        Serial.write(*((uint8_t *)data.R.addr));
         break;
       }
     }

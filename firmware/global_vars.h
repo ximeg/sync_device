@@ -1,18 +1,18 @@
 /***************************************
-DEFINITIONS OF DATA TYPES AND STRUCTURES
+COMMUNICATION PROTOCOL DEFINITIONS
 ***************************************/
-#define uchar unsigned char
-#define VERSION "0.2.0"
 
 #pragma pack(push) /* push current alignment to stack */
 #pragma pack(1)    /* set alignment to 1 byte boundary */
 
+// Address and value of register for read/write operations
 typedef struct
 {
     uint8_t addr;
     uint8_t value;
 } Register;
 
+// Laser shutter states - in active and idle mode
 typedef struct
 {
     uint8_t active;
@@ -20,6 +20,7 @@ typedef struct
 } Shutter;
 Shutter g_shutter{0xF, 0};
 
+// Timer 1 configuration for generation of pulsetrains
 typedef struct
 {
     uint16_t timer_period_cts;
@@ -29,18 +30,21 @@ typedef struct
 } Timer1;
 Timer1 g_timer1{600, 7, 16, 48};
 
+// Timelapse configuration - number frames to skip
 typedef struct
 {
     uint16_t skip;
 } Timelapse;
 Timelapse g_timelapse{0};
 
+// Alternating laser excitation - bit mask showing which spectral channels are active
 typedef struct
 {
     uint8_t mask;
 } ALEX;
 ALEX g_ALEX{0};
 
+// Data packet for serial communication
 union Data
 {
     struct
@@ -58,11 +62,18 @@ union Data
             ALEX A;      // A - ALEX mask for shutters
         };
     };
-    uchar bytes[9];
 
+    uint8_t bytes[9];
 } data;
 
 #pragma pack(pop) /* restore original alignment from stack */
 
 int charsRead;
+
+
+/***************************************
+SYSTEM STATUS VARIABLES
+***************************************/
+
 bool system_is_up = false;
+
