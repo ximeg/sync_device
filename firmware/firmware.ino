@@ -135,13 +135,13 @@ void loop()
       case 'W':
       case 'w':
         // Write the value to the register with given address
-        *((uint8_t *)data.R.addr) = data.R.value;
+        MEM_IO_8bit(data.R.addr) = data.R.value;
         break;
 
       case 'R':
       case 'r':
         // Read the value from the given register
-        Serial.write(*((uint8_t *)data.R.addr));
+        Serial.write(MEM_IO_8bit(data.R.addr));
         break;
       }
     }

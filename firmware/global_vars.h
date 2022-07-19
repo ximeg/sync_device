@@ -1,3 +1,12 @@
+/*******************
+DIRECT MEMORY ACCESS
+********************/
+// convert given memory address to long integer (for pointers),
+// then convert it to pointer to unsigned char, and dereference it.
+#define MEM_IO_8bit(mem_addr) (*(volatile uint8_t *)(uintptr_t)(mem_addr))
+
+
+
 /***************************************
 PINOUT AND WIRING DEFINITIONS
 ***************************************/
