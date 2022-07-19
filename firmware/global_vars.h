@@ -1,4 +1,28 @@
 /***************************************
+PINOUT AND WIRING DEFINITIONS
+***************************************/
+
+// Laser shutters
+const uint8_t CY2_PIN = PORT0;
+const uint8_t CY3_PIN = PORT1;
+const uint8_t CY5_PIN = PORT2;
+const uint8_t CY7_PIN = PORT3;
+#define SHUTTERS_PORT PORTC
+#define SHUTTERS_DDR DDRC
+
+// Fluidic system trigger
+const uint8_t FLUIDIC_PIN = PORT4;
+#define FLUIDIC_PORT PORTC
+#define FLUIDIC_DDR DDRC
+
+// Camera trigger
+const uint8_t CAMERA_PIN = PORT5;
+#define CAMERA_PORT PORTC
+#define CAMERA_DDR DDRC
+
+
+
+/***************************************
 COMMUNICATION PROTOCOL DEFINITIONS
 ***************************************/
 
@@ -71,9 +95,19 @@ union Data
 int charsRead;
 
 
+
 /***************************************
 SYSTEM STATUS VARIABLES
 ***************************************/
 
 bool system_is_up = false;
 
+enum T1
+{
+    STOPPED = 0,
+    FIRST_FRAME = 1,
+    NORMAL_FRAME = 2,
+    SKIP_FRAME = 3,
+    ALEX_FRAME = 4,
+    LAST_FRAME = 5,
+};

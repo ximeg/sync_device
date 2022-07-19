@@ -9,9 +9,48 @@
 
 #include "global_vars.h"
 
-/************
+/***************
 HELPER FUNCTIONS
-************/
+****************/
+
+inline void write_camera_pin(int value)
+{
+  if (value)
+    CAMERA_PORT |= bit(CAMERA_PIN);
+  else
+    CAMERA_PORT &= ~bit(CAMERA_PIN);
+}
+
+inline void set_fluidic_pin(int value)
+{
+  if (value)
+    FLUIDIC_PORT |= bit(FLUIDIC_PIN);
+  else
+    FLUIDIC_PORT &= ~bit(FLUIDIC_PIN);
+}
+
+inline void reset_timer1(){
+  // Pause timer 1
+  GTCCR = PSRSYNC | TSM;
+
+  // WGM mode 14, prescaler clk/1024 (datasheet tables 15-5 & 15-6)
+  TCCR1A = bit(WGM11);
+  TCCR1B = bit(WGM12) | bit(WGM13) | bit(CS10) | bit(CS12);
+
+  // Enable interrupts for overflow, match A, and match B
+  TIMSK1 = bit(TOIE1) | bit(OCIE1A) | bit(OCIE1B);
+
+  // Reset the timer
+  TCNT1 = 0;
+}
+
+inline void start_timer1(){
+  // Read and set values for ICR1, OCR1A, OCR1B from global vars...
+
+  // Let it run
+  GTCCR = 0;
+}
+
 
 /************
 INTERRUPTS
@@ -19,37 +58,53 @@ INTERRUPTS
 
 ISR(TIMER1_OVF_vect)
 {
-  // TOGGLE PORTC - it works!
-  PORTC = 0xFF;
-
-  // TODO: See what's the current status of the timer and select the corresponding action
+  // toggle shutter
+  PINC |= 0xF;
 }
+
 
 ISR(TIMER1_COMPA_vect)
 {
-  PORTC = 0;
-  PINB = 0xFF;
+write_camera_pin(1);
 }
+
+ISR(TIMER1_COMPB_vect)
+{
+  // Generate falling edge of the camera trigger
+write_camera_pin(0);
+}
+
 
 /************
 SYSTEM STARTUP
 ************/
 void setup()
 {
+  {// Setup serial port
   Serial.begin(2000000);
   Serial.setTimeout(10); // ms
+  }
 
-  // Setup ports
-  DDRC = 0xFF;
-  DDRB = 0xFF;
+  {// Setup output ports
+  FLUIDIC_DDR |= bit(FLUIDIC_PIN);
+  FLUIDIC_PORT &= ~bit(FLUIDIC_PIN);
 
-  // Start timer 1 and setup interrupt
-  ICR1 = 6000;
-  OCR1A = 150;
-  TCCR1A = bit(WGM11);
-  TCCR1B = bit(WGM12) | bit(WGM13) | bit(CS10) | bit(CS12);
-  TIMSK1 = bit(TOIE1) | bit(OCIE1A);
+  CAMERA_DDR |= bit(CAMERA_PIN);
+  CAMERA_PORT &= ~bit(CAMERA_PIN);
+
+  SHUTTERS_DDR |= bit(CY2_PIN) | bit(CY3_PIN) | bit(CY5_PIN) | bit(CY7_PIN);
+  SHUTTERS_PORT &= ~(bit(CY2_PIN) | bit(CY3_PIN) | bit(CY5_PIN) | bit(CY7_PIN));
+  }
+  
+  {// Configure timer 1 and setup interrupt
+  reset_timer1();
+  ICR1 = 20000; // timer period (overflow interrupt)
+  OCR1A = 3000; // first match interrupt
+  OCR1B = 4000; // second match interrupt
+ 
   interrupts();
+  start_timer1();
+  }
 }
 
 /************
@@ -57,10 +112,8 @@ EVENT HANDLING
 ************/
 void loop()
 {
-  while (!Serial)
-  {
-    delay(1); // Wait until the serial port is ready
-  }
+  // Wait until the serial port is ready
+  while (!Serial){} 
 
   if (!system_is_up)
   {
