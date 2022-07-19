@@ -21,7 +21,7 @@ inline void write_camera_pin(int value)
     CAMERA_PORT &= ~bit(CAMERA_PIN);
 }
 
-inline void set_fluidic_pin(int value)
+inline void write_fluidic_pin(int value)
 {
   if (value)
     FLUIDIC_PORT |= bit(FLUIDIC_PIN);
@@ -96,6 +96,7 @@ ISR(TIMER1_OVF_vect)
   if (n_acquired_frames >= g_timer1.n_frames)
   {
     system_status = STATUS::LAST_FRAME;
+    write_fluidic_pin(1);
   }
 
 }
@@ -140,15 +141,15 @@ void setup()
   CAMERA_DDR |= bit(CAMERA_PIN);
   CAMERA_PORT &= ~bit(CAMERA_PIN);
 
-  SHUTTERS_DDR |= bit(CY2_PIN) | bit(CY3_PIN) | bit(CY5_PIN) | bit(CY7_PIN);
-  SHUTTERS_PORT &= ~(bit(CY2_PIN) | bit(CY3_PIN) | bit(CY5_PIN) | bit(CY7_PIN));
+  SHUTTERS_DDR |= SHUTTERS_MASK;
+  SHUTTERS_PORT &= ~SHUTTERS_MASK;
   }
   
   {// Configure timer 1 and setup interrupt
   reset_timer1();
-  ICR1 = 20000; // timer period (overflow interrupt)
-  OCR1A = 3000; // first match interrupt
-  OCR1B = 4000; // second match interrupt
+  ICR1 = 10000; // timer period (overflow interrupt)
+  OCR1A = 1000; // first match interrupt
+  OCR1B = 3000; // second match interrupt
  
   interrupts();
   start_timer1();
@@ -156,7 +157,7 @@ void setup()
 
 
   g_timer1.n_frames = 4;  // TODO: FIXME
-  g_shutter.idle = 0b0110;
+  g_shutter.idle = bit(CY2_PIN) | bit(CY7_PIN);
 }
 
 /************
