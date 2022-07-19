@@ -73,7 +73,8 @@ inline void start_timer1()
   // Read and set values for ICR1, OCR1A, OCR1B from global vars...
   ICR1 = g_timer1.timer_period_cts;
   OCR1A = g_timer1.shutter_delay_cts;
-  OCR1B = OCR1A + min(ICR1 >> 3, 156); // 12% duty cycle, at most 10ms
+  // 12.5% duty cycle, at least 1 count, at most 10ms
+  OCR1B = OCR1A + max(min(ICR1 >> 3, 156), 1);
 
   // Clear interrupt flags
   TIFR1 = 0xFF;
@@ -331,6 +332,9 @@ void loop()
         charsRead = Serial.readBytes(data.bytes + 3, 6);
         if (charsRead == 6)
         {
+          reset_timer1();
+          write_shutters(g_shutter.idle);
+
           Serial.println("START");
           memcpy(&g_timer1, &data.T, sizeof(g_timer1));
           // Send trigger to fluidic system
