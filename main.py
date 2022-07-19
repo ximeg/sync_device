@@ -7,12 +7,10 @@ COM = "COM3"
 if __name__ == "__main__":
     avr = Mega328P(COM)
 
-    print(avr.serial.read_all())
-    sleep(0.5)
-    avr.PORTC |= PC0 | PC1 | PC3
+    #    avr.PORTC |= PC0 | PC1 | PC3
     # avr.serial.write(bytearray(b"T" + w(2800) + w(12394) + w(1000) + w(35000)))
 
-if False:
+    # if False:
     # Setup timer/counter 1 to work in fast PWM mode
     # Timer/counter control register A, B and C
     #  bit    : 7      6      5      4      3     2    1     0

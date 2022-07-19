@@ -57,24 +57,14 @@ union Data
     uint8_t cmd;
 
     // All members below share the same 9 bytes of memory
-    // Th
+    // Each represents arguments of the command after which it is named
     union
     {
-      // R/W - register access
-      Register R;
-      Register W;
-
-      // S - shutter control
-      Shutter S;
-
-      // T - timer configuration and E - exposure time
-      Timer1 T;
-
-      // L - timelapse
-      Timelapse L;
-
-      // A - ALEX mask
-      ALEX A;
+      Register R;  // register access (R/W)
+      Shutter S;   // shutter control
+      Timer1 T;    // timer configuration and E - exposure time
+      Timelapse L; // L - timelapse
+      ALEX A;      // A - ALEX mask for shutters
     };
   };
   uchar bytes[9];
@@ -83,24 +73,8 @@ union Data
 
 #pragma pack(pop) /* restore original alignment from stack */
 
-// Bytes in the data frame
-struct Bytes
-{
-  uchar cmd;
-  uchar addr;
-  uchar value;
-};
-
-// Data frame consists of bytes but can be represented as text
-union DataFrame
-{
-  struct Bytes bytes;
-  uchar text[4];
-};
-
-union DataFrame df;
 int charsRead;
-bool up = false;
+bool system_is_up = false;
 
 /************
 PROGRAM LOGIC
@@ -123,32 +97,32 @@ void loop()
     delay(1); // Wait until the serial port is ready
   }
 
-  if (!up)
+  if (!system_is_up)
   {
     Serial.flush();
     // Notify the host that we are ready
     Serial.print("Arduino is ready. Firmware version: ");
     Serial.println(VERSION);
-    up = true;
+    system_is_up = true;
   }
 
   if (Serial.available() > 0)
   {
-    charsRead = Serial.readBytes(df.text, 3);
+    charsRead = Serial.readBytes(data.bytes, 3);
     if (charsRead == 3)
     {
-      switch (df.bytes.cmd)
+      switch (data.cmd)
       {
       case 'W':
       case 'w':
         // Write the value to the register with given address
-        *((uchar *)df.bytes.addr) = df.bytes.value;
+        *((uchar *)data.R.addr) = data.R.value;
         break;
 
       case 'R':
       case 'r':
         // Read the value from the given register
-        Serial.write(*((uchar *)df.bytes.addr));
+        Serial.write(*((uchar *)data.R.addr));
         break;
       }
     }

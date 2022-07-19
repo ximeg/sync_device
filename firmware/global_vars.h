@@ -76,7 +76,7 @@ enum T1STATUS
 };
 
 volatile uint8_t charsRead;
-volatile bool up = false;
+volatile bool system_is_up = false;
 
 volatile uint8_t shutter_running = 0xFF & SHUTTER_MASK;
 volatile uint8_t shutter_idle = 0;
