@@ -160,7 +160,6 @@ inline void alex2skip()
 {
   if (system_status == STATUS::ALEX_FRAME && g_timelapse.skip > 0)
   {
-
     if (n_acquired_frames > 0) // Make sure we don't skip from the start
     {
       if (alex_laser_i == 0) // it resets at the end of the ALEX cycle
@@ -223,6 +222,8 @@ ISR(TIMER1_OVF_vect)
 
   case STATUS::SKIP_FRAME:
     skipped_count++;
+    // Since we delayed the camera, we should wait more here
+    delayMicroseconds(g_timer1.shutter_delay_cts << 6);
     write_shutters(0);
     break;
 
@@ -235,7 +236,7 @@ ISR(TIMER1_OVF_vect)
       {
         write_shutters(decode_shutter_bits(bit(alex_laser_i)));
       }
-      if (++alex_laser_i >= 4)
+      if (++alex_laser_i > alex_last_laser)
       {
         alex_laser_i = 0; // start the cycle over
       }
@@ -328,6 +329,11 @@ void loop()
       case 'A':
       case 'a':
         g_ALEX.mask = data.A.mask;
+        alex_last_laser = 0;
+        while (data.A.mask >>= 1)
+        {
+          alex_last_laser++;
+        }
         break;
 
       case 'T':

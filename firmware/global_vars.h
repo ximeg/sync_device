@@ -115,6 +115,8 @@ enum STATUS
 };
 
 volatile uint8_t system_status = STATUS::IDLE;
-volatile uint16_t n_acquired_frames = 0;
-volatile uint16_t skipped_count = 0;
-volatile uint8_t alex_laser_i = 0;
+volatile uint16_t n_acquired_frames = 0; // Total number of acquired frames (pulses to camera)
+volatile uint16_t skipped_count = 0;     // Number of already skipped frames during timelapse
+
+volatile uint8_t alex_laser_i = 0;    // Current ALEX channel
+volatile uint8_t alex_last_laser = 0; // Index of the last ALEX channel
