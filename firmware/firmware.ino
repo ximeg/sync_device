@@ -75,6 +75,7 @@ ISR(TIMER1_OVF_vect)
     break;
 
   case STATUS::SKIP_FRAME:
+    skipped_count++;
     write_shutters(0);
     break;
 
@@ -85,18 +86,11 @@ ISR(TIMER1_OVF_vect)
   case STATUS::IDLE:
     write_shutters(g_shutter.idle);
     reset_timer1();
+    Serial.println("DONE");
     break;
 
   default: // do nothing;
     break;
-  }
-
-  // Check number of acquired frames
-  if (n_acquired_frames >= g_timer1.n_frames - 1)
-  {
-    n_acquired_frames = 0;
-    system_status = STATUS::IDLE; // set status for the next frame
-    fluidic_pin_up();
   }
 }
 
@@ -110,10 +104,37 @@ ISR(TIMER1_COMPA_vect)
   }
 }
 
-// Generate falling edge of the camera trigger. Nothing else, really
 ISR(TIMER1_COMPB_vect)
 {
+  // Generate falling edge of the camera trigger.
   camera_pin_down();
+
+  // Evaluate the current situation and prepare for the next frame
+  if (n_acquired_frames >= g_timer1.n_frames - 1) // We acquired enough frames
+  {
+    n_acquired_frames = 0;
+    system_status = STATUS::IDLE; // shutdown everything after in the next cycle
+    fluidic_pin_up();
+    return;
+  }
+
+  if (skipped_count == 0 && g_timelapse.skip > 0) // && ALEX sequence has finished
+  {
+    system_status = STATUS::SKIP_FRAME; // We should skip the next frame
+    return;
+  }
+
+  switch (system_status)
+  {
+  case STATUS::SKIP_FRAME:
+    // count skipped frames
+    if (skipped_count >= g_timelapse.skip)
+    {
+      skipped_count = 0;
+      system_status = STATUS::NORMAL_FRAME; // Next frame is normal (or ALEX!?)
+    };
+    break;
+  }
 }
 
 /************
@@ -147,8 +168,9 @@ void setup()
     start_timer1();
   }
 
-  g_timer1.n_frames = 4; // TODO: FIXME
+  g_timer1.n_frames = 10; // TODO: FIXME
   g_shutter.idle = bit(CY2_PIN) | bit(CY7_PIN);
+  g_timelapse.skip = 3;
 }
 
 /************

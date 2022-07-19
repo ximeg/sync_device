@@ -5,8 +5,6 @@ DIRECT MEMORY ACCESS
 // then convert it to pointer to unsigned char, and dereference it.
 #define MEM_IO_8bit(mem_addr) (*(volatile uint8_t *)(uintptr_t)(mem_addr))
 
-
-
 /***************************************
 PINOUT AND WIRING DEFINITIONS
 ***************************************/
@@ -29,8 +27,6 @@ const uint8_t FLUIDIC_PIN = PORT2;
 const uint8_t CAMERA_PIN = PORT5;
 #define CAMERA_PORT PORTB
 #define CAMERA_DDR DDRB
-
-
 
 /***************************************
 COMMUNICATION PROTOCOL DEFINITIONS
@@ -104,8 +100,6 @@ union Data
 
 int charsRead;
 
-
-
 /***************************************
 SYSTEM STATUS VARIABLES
 ***************************************/
@@ -123,3 +117,4 @@ enum STATUS
 };
 
 uint8_t system_status = STATUS::IDLE;
+uint16_t skipped_count = 0;
