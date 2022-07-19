@@ -58,6 +58,38 @@ uint8_t decode_shutter_bits(uint8_t rx_bits)
   return (cy2_bit << CY2_PIN) | (cy3_bit << CY3_PIN) | (cy5_bit << CY5_PIN) | (cy7_bit << CY7_PIN);
 }
 
+/**
+ * @brief Evaluate all global variables and prepare the system to process the next timer event
+ *
+ * What we need to take into account?
+ *  - current system status
+ *  - do we have a frame limit? How many frames we already acquired?
+ *  - Timelapse. is it active? how many frames we skipped?
+ *  - ALEX. Is it active? What laser combinations are needed? What is the current one?
+ */
+void prepare_next_frame()
+{
+  // Evaluate the current situation and prepare for the next frame
+  if (n_acquired_frames >= g_timer1.n_frames - 1 && g_timer1.n_frames > 0) // We acquired enough frames
+  {
+    n_acquired_frames = 0;
+    system_status = STATUS::IDLE; // shutdown everything after in the next cycle
+    return;
+  }
+
+  if (skipped_count == 0 && g_timelapse.skip > 0) // && ALEX sequence has finished
+  {
+    system_status = STATUS::SKIP_FRAME; // We should skip the next frame
+    return;
+  }
+
+  if (system_status == STATUS::SKIP_FRAME && skipped_count >= g_timelapse.skip)
+  {
+    skipped_count = 0;
+    system_status = STATUS::NORMAL_FRAME; // Next frame is normal (or ALEX!?)
+  };
+}
+
 /************
 INTERRUPTS
 ************/
@@ -110,26 +142,7 @@ ISR(TIMER1_COMPB_vect)
   // Generate falling edge of the camera trigger.
   camera_pin_down();
 
-  // Evaluate the current situation and prepare for the next frame
-  if (n_acquired_frames >= g_timer1.n_frames - 1) // We acquired enough frames
-  {
-    n_acquired_frames = 0;
-    system_status = STATUS::IDLE; // shutdown everything after in the next cycle
-    fluidic_pin_up();
-    return;
-  }
-
-  if (skipped_count == 0 && g_timelapse.skip > 0) // && ALEX sequence has finished
-  {
-    system_status = STATUS::SKIP_FRAME; // We should skip the next frame
-    return;
-  }
-
-  if (system_status == STATUS::SKIP_FRAME && skipped_count >= g_timelapse.skip)
-  {
-    skipped_count = 0;
-    system_status = STATUS::NORMAL_FRAME; // Next frame is normal (or ALEX!?)
-  };
+  prepare_next_frame();
 }
 
 /************
@@ -166,6 +179,7 @@ void setup()
   g_timer1.n_frames = 6; // TODO: FIXME
   g_shutter.idle = bit(CY2_PIN) | bit(CY7_PIN);
   g_timelapse.skip = 4;
+  g_ALEX.mask = 0b0111;
 }
 
 /************
