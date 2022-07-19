@@ -118,3 +118,5 @@ enum STATUS
 
 uint8_t system_status = STATUS::IDLE;
 uint16_t skipped_count = 0;
+
+uint8_t alex_channel_idx = 0;

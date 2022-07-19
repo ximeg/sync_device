@@ -40,7 +40,7 @@ inline void start_timer1()
   TIMSK1 = bit(TOIE1) | bit(OCIE1A) | bit(OCIE1B);
 
   // The first frame can either be NORMAL or ALEX
-  system_status = (g_ALEX.mask) ? STATUS::ALEX_FRAME : STATUS::NORMAL_FRAME;
+  system_status = is_alex_active() ? STATUS::ALEX_FRAME : STATUS::NORMAL_FRAME;
   interrupts();
 
   // Reset the timer and make sure it is not paused
@@ -61,6 +61,12 @@ uint8_t decode_shutter_bits(uint8_t rx_bits)
   uint8_t cy5_bit = (rx_bits & 4) > 0;
   uint8_t cy7_bit = (rx_bits & 8) > 0;
   return (cy2_bit << CY2_PIN) | (cy3_bit << CY3_PIN) | (cy5_bit << CY5_PIN) | (cy7_bit << CY7_PIN);
+}
+
+// Check whether ALEX mask contains more than one bit
+bool is_alex_active()
+{
+  return (g_ALEX.mask & (g_ALEX.mask - 1)) != 0;
 }
 
 // Condition: acquired enough frames
@@ -143,8 +149,20 @@ ISR(TIMER1_OVF_vect)
     break;
 
   case STATUS::ALEX_FRAME:
-    fluidic_pin_up();
-    // fancy BGR switching here... Later...
+    // extract bit number alex_i
+    uint8_t channel = 0;
+    while (!channel)
+    {
+      channel = (g_ALEX.mask >> alex_channel_idx) & 1;
+      if (channel)
+      {
+        write_shutters(decode_shutter_bits(bit(alex_channel_idx)));
+      }
+      if (++alex_channel_idx >= 4)
+      {
+        alex_channel_idx = 0; // start the cycle over
+      }
+    }
     break;
 
   case STATUS::IDLE:
@@ -187,8 +205,8 @@ void setup()
   // ======================
   g_timer1.n_frames = 6;
   g_shutter.idle = bit(CY2_PIN) | bit(CY7_PIN);
-  g_timelapse.skip = 1;
-  g_ALEX.mask = 0; // 0b0111;
+  g_timelapse.skip = 0;
+  g_ALEX.mask = 0b1011;
   // END of TODO
 
   { // Setup serial port
@@ -244,6 +262,16 @@ void loop()
     {
       switch (data.cmd)
       {
+      case 'A':
+      case 'a':
+        g_ALEX.mask = data.A.mask;
+        break;
+
+      case 'T':
+      case 't':
+        start_timer1();
+        break;
+
       case 'W':
       case 'w':
         // Write the value to the register with given address
