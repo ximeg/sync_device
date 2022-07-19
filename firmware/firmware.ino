@@ -38,8 +38,7 @@ inline void fluidic_pin_down() { FLUIDIC_PORT &= ~bit(FLUIDIC_PIN); }
 
 inline void write_shutters(uint8_t value)
 {
-  SHUTTERS_PORT &= ~SHUTTERS_MASK;
-  SHUTTERS_PORT |= value;
+  SHUTTERS_PORT = (SHUTTERS_PORT & ~SHUTTERS_MASK) | value;
 }
 
 uint8_t decode_shutter_bits(uint8_t rx_bits)
