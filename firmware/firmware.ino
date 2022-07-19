@@ -13,6 +13,12 @@
 HELPER FUNCTIONS
 ****************/
 
+// Check whether ALEX mask contains more than one bit
+bool is_alex_active()
+{
+  return (g_ALEX.mask & (g_ALEX.mask - 1)) != 0;
+}
+
 uint8_t count_bits(uint8_t v)
 {
   unsigned int c; // c accumulates the total bits set in v
@@ -29,6 +35,21 @@ inline void camera_pin_down() { CAMERA_PORT &= ~bit(CAMERA_PIN); }
 
 inline void fluidic_pin_up() { FLUIDIC_PORT |= bit(FLUIDIC_PIN); }
 inline void fluidic_pin_down() { FLUIDIC_PORT &= ~bit(FLUIDIC_PIN); }
+
+inline void write_shutters(uint8_t value)
+{
+  SHUTTERS_PORT &= ~SHUTTERS_MASK;
+  SHUTTERS_PORT |= value;
+}
+
+uint8_t decode_shutter_bits(uint8_t rx_bits)
+{
+  uint8_t cy2_bit = (rx_bits & 1) > 0;
+  uint8_t cy3_bit = (rx_bits & 2) > 0;
+  uint8_t cy5_bit = (rx_bits & 4) > 0;
+  uint8_t cy7_bit = (rx_bits & 8) > 0;
+  return (cy2_bit << CY2_PIN) | (cy3_bit << CY3_PIN) | (cy5_bit << CY5_PIN) | (cy7_bit << CY7_PIN);
+}
 
 inline void reset_timer1()
 {
@@ -66,26 +87,9 @@ inline void start_timer1()
   interrupts();
 }
 
-inline void write_shutters(uint8_t value)
-{
-  SHUTTERS_PORT &= ~SHUTTERS_MASK;
-  SHUTTERS_PORT |= value;
-}
-
-uint8_t decode_shutter_bits(uint8_t rx_bits)
-{
-  uint8_t cy2_bit = (rx_bits & 1) > 0;
-  uint8_t cy3_bit = (rx_bits & 2) > 0;
-  uint8_t cy5_bit = (rx_bits & 4) > 0;
-  uint8_t cy7_bit = (rx_bits & 8) > 0;
-  return (cy2_bit << CY2_PIN) | (cy3_bit << CY3_PIN) | (cy5_bit << CY5_PIN) | (cy7_bit << CY7_PIN);
-}
-
-// Check whether ALEX mask contains more than one bit
-bool is_alex_active()
-{
-  return (g_ALEX.mask & (g_ALEX.mask - 1)) != 0;
-}
+/**********
+TRANSITIONS
+***********/
 
 // Condition: acquired enough frames
 inline void normal2idle()
@@ -176,7 +180,7 @@ inline void skip2alex()
 }
 
 /**
- * @brief Evaluate all global variables and prepare the system to process the next timer event
+ * Evaluate all global variables and prepare the system to process the next timer event
  *
  * What we need to take into account?
  *  - current system status
