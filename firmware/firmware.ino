@@ -13,6 +13,17 @@
 HELPER FUNCTIONS
 ****************/
 
+uint8_t count_bits(uint8_t v)
+{
+  unsigned int c; // c accumulates the total bits set in v
+
+  for (c = 0; v; v >>= 1)
+  {
+    c += v & 1;
+  }
+  return c;
+}
+
 inline void camera_pin_up() { CAMERA_PORT |= bit(CAMERA_PIN); }
 inline void camera_pin_down() { CAMERA_PORT &= ~bit(CAMERA_PIN); }
 
@@ -110,6 +121,24 @@ inline void skip2normal()
   }
 }
 
+// Condition: enough frames acquired
+inline void alex2idle()
+{
+  if (system_status == STATUS::ALEX_FRAME)
+  {
+    if (g_timer1.n_frames > 0) // There is a frame limit
+    {
+      uint16_t N = g_timer1.n_frames * count_bits(g_ALEX.mask);
+
+      if (n_acquired_frames >= N) // We acquired enough frames!
+      {
+        n_acquired_frames = 0;
+        system_status = STATUS::IDLE; // shutdown everything after the next cycle
+      }
+    }
+  }
+}
+
 /**
  * @brief Evaluate all global variables and prepare the system to process the next timer event
  *
@@ -124,6 +153,7 @@ void prepare_next_frame()
   normal2idle();
   normal2skip();
   skip2normal();
+  alex2idle();
 }
 
 /*********
@@ -136,6 +166,8 @@ INTERRUPTS
 // Additionally, it can be used to setup other things related to this frame
 ISR(TIMER1_OVF_vect)
 {
+  uint8_t laser = 0;
+
   switch (system_status)
   {
   case STATUS::NORMAL_FRAME:
@@ -149,18 +181,17 @@ ISR(TIMER1_OVF_vect)
     break;
 
   case STATUS::ALEX_FRAME:
-    // extract bit number alex_i
-    uint8_t channel = 0;
-    while (!channel)
+    // Cycle through spectral channels and set laser shutters
+    while (!laser)
     {
-      channel = (g_ALEX.mask >> alex_channel_idx) & 1;
-      if (channel)
+      laser = (g_ALEX.mask >> alex_laser_i) & 1;
+      if (laser)
       {
-        write_shutters(decode_shutter_bits(bit(alex_channel_idx)));
+        write_shutters(decode_shutter_bits(bit(alex_laser_i)));
       }
-      if (++alex_channel_idx >= 4)
+      if (++alex_laser_i >= 4)
       {
-        alex_channel_idx = 0; // start the cycle over
+        alex_laser_i = 0; // start the cycle over
       }
     }
     break;
@@ -203,10 +234,10 @@ void setup()
   // ======================
   // TODO: this is a crutch
   // ======================
-  g_timer1.n_frames = 6;
-  g_shutter.idle = bit(CY2_PIN) | bit(CY7_PIN);
+  g_timer1.n_frames = 2;
+  g_shutter.idle = 0; // bit(CY2_PIN) | bit(CY7_PIN);
   g_timelapse.skip = 0;
-  g_ALEX.mask = 0b1011;
+  g_ALEX.mask = 0b1111;
   // END of TODO
 
   { // Setup serial port
@@ -228,7 +259,7 @@ void setup()
   { // Configure timer 1 and setup interrupt
     reset_timer1();
 
-    g_timer1.timer_period_cts = 16000;
+    g_timer1.timer_period_cts = 15000;
     g_timer1.shutter_delay_cts = 1500;
 
     start_timer1();
