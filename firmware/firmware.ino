@@ -32,15 +32,20 @@ inline void reset_timer1()
 inline void start_timer1()
 {
   // Read and set values for ICR1, OCR1A, OCR1B from global vars...
+  ICR1 = g_timer1.timer_period_cts;
+  OCR1A = g_timer1.shutter_delay_cts;
+  OCR1B = OCR1A + min(ICR1 >> 3, 156); // 12% duty cycle, at most 10ms
 
   // Enable interrupts for overflow, match A, and match B
   TIMSK1 = bit(TOIE1) | bit(OCIE1A) | bit(OCIE1B);
 
+  // The first frame can either be NORMAL or ALEX
+  system_status = (g_ALEX.mask) ? STATUS::ALEX_FRAME : STATUS::NORMAL_FRAME;
+  interrupts();
+
   // Reset the timer and make sure it is not paused
   GTCCR = 0;
   TCNT1 = 0;
-
-  system_status = STATUS::NORMAL_FRAME;
 }
 
 inline void write_shutters(uint8_t value)
@@ -58,6 +63,47 @@ uint8_t decode_shutter_bits(uint8_t rx_bits)
   return (cy2_bit << CY2_PIN) | (cy3_bit << CY3_PIN) | (cy5_bit << CY5_PIN) | (cy7_bit << CY7_PIN);
 }
 
+// Condition: acquired enough frames
+inline void normal2idle()
+{
+  if (system_status == STATUS::NORMAL_FRAME)
+  {
+    if (g_timer1.n_frames > 0) // There is a frame limit
+    {
+      if (n_acquired_frames >= g_timer1.n_frames - 1) // We acquired enough frames!
+      {
+        n_acquired_frames = 0;
+        system_status = STATUS::IDLE; // shutdown everything after the next cycle
+      }
+    }
+  }
+}
+
+// Condition: timelapse is active
+inline void normal2skip()
+{
+  if (system_status == STATUS::NORMAL_FRAME)
+  {
+    if (g_timelapse.skip > 0)
+    {
+      skipped_count = 0;
+      system_status = STATUS::SKIP_FRAME; // We should skip the next frame
+    }
+  }
+}
+
+// Condition: enough frames skipped
+inline void skip2normal()
+{
+  if (system_status == STATUS::SKIP_FRAME)
+  {
+    if (skipped_count >= g_timelapse.skip)
+    {
+      system_status = STATUS::NORMAL_FRAME; // Next frame is normal (or ALEX!?)
+    }
+  }
+}
+
 /**
  * @brief Evaluate all global variables and prepare the system to process the next timer event
  *
@@ -69,30 +115,14 @@ uint8_t decode_shutter_bits(uint8_t rx_bits)
  */
 void prepare_next_frame()
 {
-  // Evaluate the current situation and prepare for the next frame
-  if (n_acquired_frames >= g_timer1.n_frames - 1 && g_timer1.n_frames > 0) // We acquired enough frames
-  {
-    n_acquired_frames = 0;
-    system_status = STATUS::IDLE; // shutdown everything after in the next cycle
-    return;
-  }
-
-  if (skipped_count == 0 && g_timelapse.skip > 0) // && ALEX sequence has finished
-  {
-    system_status = STATUS::SKIP_FRAME; // We should skip the next frame
-    return;
-  }
-
-  if (system_status == STATUS::SKIP_FRAME && skipped_count >= g_timelapse.skip)
-  {
-    skipped_count = 0;
-    system_status = STATUS::NORMAL_FRAME; // Next frame is normal (or ALEX!?)
-  };
+  normal2idle();
+  normal2skip();
+  skip2normal();
 }
 
-/************
+/*********
 INTERRUPTS
-************/
+**********/
 
 // Timer overflow. This interrupt is called at the beginning of a frame and
 // is usually responsible for control of the shutters that need to be
@@ -113,6 +143,7 @@ ISR(TIMER1_OVF_vect)
     break;
 
   case STATUS::ALEX_FRAME:
+    fluidic_pin_up();
     // fancy BGR switching here... Later...
     break;
 
@@ -150,6 +181,16 @@ SYSTEM STARTUP
 ************/
 void setup()
 {
+
+  // ======================
+  // TODO: this is a crutch
+  // ======================
+  g_timer1.n_frames = 6;
+  g_shutter.idle = bit(CY2_PIN) | bit(CY7_PIN);
+  g_timelapse.skip = 1;
+  g_ALEX.mask = 0; // 0b0111;
+  // END of TODO
+
   { // Setup serial port
     Serial.begin(2000000);
     Serial.setTimeout(10); // ms
@@ -168,18 +209,12 @@ void setup()
 
   { // Configure timer 1 and setup interrupt
     reset_timer1();
-    ICR1 = 6000;  // timer period (overflow interrupt)
-    OCR1A = 1500; // first match interrupt
-    OCR1B = 2000; // second match interrupt
 
-    interrupts();
+    g_timer1.timer_period_cts = 16000;
+    g_timer1.shutter_delay_cts = 1500;
+
     start_timer1();
   }
-
-  g_timer1.n_frames = 6; // TODO: FIXME
-  g_shutter.idle = bit(CY2_PIN) | bit(CY7_PIN);
-  g_timelapse.skip = 4;
-  g_ALEX.mask = 0b0111;
 }
 
 /************
