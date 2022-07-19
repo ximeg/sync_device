@@ -106,8 +106,6 @@ SYSTEM STATUS VARIABLES
 
 bool system_is_up = false;
 
-volatile uint16_t n_acquired_frames = 0;
-
 enum STATUS
 {
     IDLE = 0,
@@ -116,7 +114,7 @@ enum STATUS
     ALEX_FRAME = 3,
 };
 
-uint8_t system_status = STATUS::IDLE;
-uint16_t skipped_count = 0;
-
-uint8_t alex_laser_i = 0;
+volatile uint8_t system_status = STATUS::IDLE;
+volatile uint16_t n_acquired_frames = 0;
+volatile uint16_t skipped_count = 0;
+volatile uint8_t alex_laser_i = 0;

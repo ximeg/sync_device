@@ -182,6 +182,21 @@ class AVR_Base(object):
         i = self._bitlist2int(idle, rev=True) if idle is not None else 0xFF - r
         self.serial.write(bytearray([ord("S"), r, i]))
 
+    def set_timelapse(self, skip=0):
+        """
+        Set number of frames to skip for timelapse imaging. 0 means no timelapse.
+        Remember, the camera exposure control must be set to internal!
+        """
+        uint16 = lambda x: bytes(ctypes.c_ushort(x))
+        self.serial.write(bytearray(b"L" + uint16(skip)))
+
+    def set_ALEX(self, bitlist):
+        """
+        Set alternate laser excitation (ALEX). Provide [0,0,0,0] to deactivate
+        """
+        r = self._bitlist2int(bitlist, rev=True)
+        self.serial.write(bytearray([ord("A"), r, 0]))
+
 
 def define_AVR(RegisterList: RegisterBase):
     """

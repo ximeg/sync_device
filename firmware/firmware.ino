@@ -38,6 +38,13 @@ inline void reset_timer1()
 
   // Disable timer 1 interrupts
   TIMSK1 = 0;
+  TIFR1 = 0xFF;
+
+  // Reset the system to the standard state
+  system_status = STATUS::IDLE;
+  n_acquired_frames = 0;
+  skipped_count = 0;
+  alex_laser_i = 0;
 }
 
 inline void start_timer1()
@@ -47,16 +54,16 @@ inline void start_timer1()
   OCR1A = g_timer1.shutter_delay_cts;
   OCR1B = OCR1A + min(ICR1 >> 3, 156); // 12% duty cycle, at most 10ms
 
+  // Clear interrupt flags
+  TIFR1 = 0xFF;
+
   // Enable interrupts for overflow, match A, and match B
   TIMSK1 = bit(TOIE1) | bit(OCIE1A) | bit(OCIE1B);
 
-  // The first frame can either be NORMAL or ALEX
-  system_status = is_alex_active() ? STATUS::ALEX_FRAME : STATUS::NORMAL_FRAME;
-  interrupts();
-
   // Reset the timer and make sure it is not paused
+  TCNT1 = ICR1 - 2;
   GTCCR = 0;
-  TCNT1 = 0;
+  interrupts();
 }
 
 inline void write_shutters(uint8_t value)
@@ -87,7 +94,7 @@ inline void normal2idle()
   {
     if (g_timer1.n_frames > 0) // There is a frame limit
     {
-      if (n_acquired_frames >= g_timer1.n_frames - 1) // We acquired enough frames!
+      if (n_acquired_frames >= g_timer1.n_frames) // We acquired enough frames!
       {
         n_acquired_frames = 0;
         system_status = STATUS::IDLE; // shutdown everything after the next cycle
@@ -144,10 +151,14 @@ inline void alex2skip()
 {
   if (system_status == STATUS::ALEX_FRAME && g_timelapse.skip > 0)
   {
-    if (alex_laser_i == 0) // it resets at the end of the cycle
+
+    if (n_acquired_frames > 0) // Make sure we don't skip from the start
     {
-      skipped_count = 0;
-      system_status = STATUS::SKIP_FRAME; // We should skip the next frame
+      if (alex_laser_i == 0) // it resets at the end of the ALEX cycle
+      {
+        skipped_count = 0;
+        system_status = STATUS::SKIP_FRAME; // We should skip the next frame
+      }
     }
   }
 }
@@ -247,6 +258,7 @@ ISR(TIMER1_COMPB_vect)
 {
   // Generate falling edge of the camera trigger.
   camera_pin_down();
+  fluidic_pin_down();
   // Decide what to do during the next timer cycle.
   prepare_next_frame();
 }
@@ -256,40 +268,22 @@ SYSTEM STARTUP
 ************/
 void setup()
 {
+  // Setup serial port
+  Serial.begin(2000000);
+  Serial.setTimeout(10); // ms
 
-  // ======================
-  // TODO: this is a crutch
-  // ======================
-  g_timer1.n_frames = 3;
-  g_shutter.idle = 0; // bit(CY2_PIN) | bit(CY7_PIN);
-  g_timelapse.skip = 2;
-  g_ALEX.mask = 0b1111;
-  // END of TODO
+  // Setup output ports
+  FLUIDIC_DDR |= bit(FLUIDIC_PIN);
+  FLUIDIC_PORT &= ~bit(FLUIDIC_PIN);
 
-  { // Setup serial port
-    Serial.begin(2000000);
-    Serial.setTimeout(10); // ms
-  }
+  CAMERA_DDR |= bit(CAMERA_PIN);
+  CAMERA_PORT &= ~bit(CAMERA_PIN);
 
-  { // Setup output ports
-    FLUIDIC_DDR |= bit(FLUIDIC_PIN);
-    FLUIDIC_PORT &= ~bit(FLUIDIC_PIN);
+  SHUTTERS_DDR |= SHUTTERS_MASK;
+  SHUTTERS_PORT &= ~SHUTTERS_MASK;
 
-    CAMERA_DDR |= bit(CAMERA_PIN);
-    CAMERA_PORT &= ~bit(CAMERA_PIN);
-
-    SHUTTERS_DDR |= SHUTTERS_MASK;
-    SHUTTERS_PORT &= ~SHUTTERS_MASK;
-  }
-
-  { // Configure timer 1 and setup interrupt
-    reset_timer1();
-
-    g_timer1.timer_period_cts = 15000;
-    g_timer1.shutter_delay_cts = 1500;
-
-    start_timer1();
-  }
+  // Configure timer 1 and setup interrupt
+  reset_timer1();
 }
 
 /************
@@ -326,8 +320,29 @@ void loop()
 
       case 'T':
       case 't':
-        start_timer1();
-        break;
+        if (g_timer1.timer_period_cts == 0)
+          break; // don't bother, period is zero
+
+        // Read the remaining data from the packet
+        charsRead = Serial.readBytes(data.bytes + 3, 6);
+        if (charsRead == 6)
+        {
+          Serial.println("START");
+          memcpy(&g_timer1, &data.T, sizeof(g_timer1));
+          // Send trigger to fluidic system
+          fluidic_pin_up();
+
+          // TODO: use timer 1 and an additional state??
+          delay(g_timer1.injection_delay_cts >> 4);
+
+          n_acquired_frames = 0;
+
+          // The first frame can either be NORMAL or ALEX
+          system_status = is_alex_active() ? STATUS::ALEX_FRAME : STATUS::NORMAL_FRAME;
+
+          start_timer1();
+          break;
+        }
 
       case 'W':
       case 'w':
@@ -353,6 +368,23 @@ void loop()
         if (system_status == STATUS::NORMAL_FRAME)
           write_shutters(g_shutter.active);
 
+        break;
+
+      case 'L':
+      case 'l':
+        g_timelapse.skip = data.L.skip;
+        break;
+
+      case 'E':
+      case 'e':
+        g_timer1.timer_period_cts = data.T.timer_period_cts;
+        start_timer1();
+        break;
+
+      case 'Q':
+      case 'q':
+        reset_timer1();
+        write_shutters(g_shutter.idle);
         break;
       }
     }
