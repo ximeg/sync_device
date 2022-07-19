@@ -72,6 +72,7 @@ ISR(TIMER1_OVF_vect)
   {
   case STATUS::NORMAL_FRAME:
     write_shutters(g_shutter.active);
+    // Check if ALEX is active?
     break;
 
   case STATUS::SKIP_FRAME:
@@ -124,17 +125,11 @@ ISR(TIMER1_COMPB_vect)
     return;
   }
 
-  switch (system_status)
+  if (system_status == STATUS::SKIP_FRAME && skipped_count >= g_timelapse.skip)
   {
-  case STATUS::SKIP_FRAME:
-    // count skipped frames
-    if (skipped_count >= g_timelapse.skip)
-    {
-      skipped_count = 0;
-      system_status = STATUS::NORMAL_FRAME; // Next frame is normal (or ALEX!?)
-    };
-    break;
-  }
+    skipped_count = 0;
+    system_status = STATUS::NORMAL_FRAME; // Next frame is normal (or ALEX!?)
+  };
 }
 
 /************
@@ -160,17 +155,17 @@ void setup()
 
   { // Configure timer 1 and setup interrupt
     reset_timer1();
-    ICR1 = 10000; // timer period (overflow interrupt)
-    OCR1A = 1000; // first match interrupt
-    OCR1B = 3000; // second match interrupt
+    ICR1 = 6000;  // timer period (overflow interrupt)
+    OCR1A = 1500; // first match interrupt
+    OCR1B = 2000; // second match interrupt
 
     interrupts();
     start_timer1();
   }
 
-  g_timer1.n_frames = 10; // TODO: FIXME
+  g_timer1.n_frames = 6; // TODO: FIXME
   g_shutter.idle = bit(CY2_PIN) | bit(CY7_PIN);
-  g_timelapse.skip = 3;
+  g_timelapse.skip = 4;
 }
 
 /************
