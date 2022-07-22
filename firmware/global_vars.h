@@ -10,21 +10,21 @@ PINOUT AND WIRING DEFINITIONS
 ***************************************/
 
 // Laser shutters
-const uint8_t CY2_PIN = PORT0;
-const uint8_t CY3_PIN = PORT2;
-const uint8_t CY5_PIN = PORT5;
-const uint8_t CY7_PIN = PORT3;
+const uint8_t CY2_PIN = PORT0; // A0
+const uint8_t CY3_PIN = PORT1; // A1
+const uint8_t CY5_PIN = PORT2; // A2
+const uint8_t CY7_PIN = PORT3; // A3
 const uint8_t SHUTTERS_MASK = bit(CY2_PIN) | bit(CY3_PIN) | bit(CY5_PIN) | bit(CY7_PIN);
 #define SHUTTERS_PORT PORTC
 #define SHUTTERS_DDR DDRC
 
 // Fluidic system trigger
-const uint8_t FLUIDIC_PIN = PORT2;
+const uint8_t FLUIDIC_PIN = PORT2; // pin 2
 #define FLUIDIC_PORT PORTD
 #define FLUIDIC_DDR DDRD
 
 // Camera trigger
-const uint8_t CAMERA_PIN = PORT5;
+const uint8_t CAMERA_PIN = PORT5; // pin 13
 #define CAMERA_PORT PORTB
 #define CAMERA_DDR DDRB
 
@@ -71,6 +71,7 @@ Timelapse g_timelapse{0};
 typedef struct
 {
     uint8_t mask;
+    uint8_t alternate;
 } ALEX;
 ALEX g_ALEX{0};
 

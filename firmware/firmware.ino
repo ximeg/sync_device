@@ -249,17 +249,26 @@ ISR(TIMER1_OVF_vect)
 
   case STATUS::ALEX_FRAME:
     // Cycle through spectral channels and set laser shutters
-    while (!laser)
+    if (g_ALEX.alternate)
     {
-      laser = (g_ALEX.mask >> alex_laser_i) & 1;
-      if (laser)
+
+      while (!laser)
       {
-        write_shutters(decode_shutter_bits(bit(alex_laser_i)));
+        laser = (g_ALEX.mask >> alex_laser_i) & 1;
+        if (laser)
+        {
+          write_shutters(decode_shutter_bits(bit(alex_laser_i)));
+        }
+        if (++alex_laser_i > alex_last_laser)
+        {
+          alex_laser_i = 0; // start the cycle over
+        }
       }
-      if (++alex_laser_i > alex_last_laser)
-      {
-        alex_laser_i = 0; // start the cycle over
-      }
+    }
+    else
+    {
+      write_shutters(g_ALEX.mask);
+      alex_laser_i = 0;
     }
     break;
 
@@ -349,6 +358,7 @@ void loop()
       case 'A':
       case 'a':
         g_ALEX.mask = data.A.mask;
+        g_ALEX.alternate = data.A.alternate;
         alex_last_laser = 0;
         while (data.A.mask >>= 1)
         {
