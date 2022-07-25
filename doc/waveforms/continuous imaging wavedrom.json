@@ -5,10 +5,10 @@
   {name: 'Laser light',     wave: '0.x.............0', phase: -0.2, period: 0.5},
   ['Camera',
   {name: 'Sync readout trigger',      wave: '0Hl..Hl......Hl......Hl......Hl...', period: 0.25},
-  {name: 'Trigger ready',   wave: '1l...l...h...l...h...l...h...l...h', period: 0.25},
+  {name: 'Trigger ready',   wave: '1l..hl..h....l..h....l..h....l..h.', period: 0.25},
   ],
  ],
-   head: {text: ['tspan', {class: 'H3'}, 'High speed single-molecule imaging']},
+   head: {text: ['tspan', {class: 'H3'}, 'Continuous imaging']},
 
  config: {hscale: 2, skin: 'normal'},
  edge: ['A+B Ts', 'C+D Ts', 'E+F Exposure time = interframe time']

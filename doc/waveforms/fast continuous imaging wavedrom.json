@@ -8,7 +8,7 @@
   {name: 'Trigger ready',             wave: '1l..hl..hl..hl..hl..hl..hl..hl..h.', period: 0.25},
   ],
  ],
-   head: {text: ['tspan', {class: 'H3'}, 'High speed single-molecule imaging with ROI']},
+   head: {text: ['tspan', {class: 'H3'}, 'Fast continuous imaging']},
 
  config: {hscale: 2, skin: 'normal'},
  edge: ['A+B Ts', 'C+D Ts', 'E+F Exposure']
