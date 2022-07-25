@@ -1,0 +1,16 @@
+{signal:
+ [
+   {                        node: '....O.............P.............A...B', phase: 0.17, period: 0.25},
+   {},
+   {name: 'Shutter TTL',    wave: '0...30............70............0.|.50', phase: 0.1, data: [''], period: 0.25},
+   {name: 'Laser light',    wave: '0...x0............x0..............|.x0', phase: -0.14, period: 0.25},
+   ['Camera',
+  {name: 'Level trigger',   wave: 'l...H..L..........H..L............|.H.', phase: 0, period: 0.25},
+  {name: 'Trigger ready',   wave: 'h...l............hl............h..|.l.', phase: 0, period: 0.25},
+     ],
+ ],
+   head: {text: ['tspan', {class: 'H3'}, 'Stroboscopic mode / ALEX / timelapse']},
+
+ config: {hscale: 2, skin: 'normal'},
+ edge: ['A+B TL', 'X+Y Exposure time', 'O+P Interframe time', 'A+P Interframe time']
+}
