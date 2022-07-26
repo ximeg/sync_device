@@ -1,0 +1,36 @@
+{signal:
+ [
+ [ 'Normal mode',
+  {name: 'Fluidics', wave: '0Pd..........'},
+  {name: 'Shutters', wave: '=.3.........=', data: ['idle', 'active', 'idle']},
+  {node: 'A.....B...C', phase: -0.83, period: 0.2},
+  {name: 'Camera',   wave: '0..P........d', phase: 0},
+ ],
+ {},
+  
+ [ 'Timelapse mode',
+  {name: 'Fluidics', wave: '0Pd..........'},
+  {name: 'Shutters', wave: '=.30.30.30.3=', phase: 0.2, data: ['idle', 'active', 'active', 'active', 'active', 'idle']},
+  {name: 'Camera',   wave: '0.P00P00P00Pd'},
+ ],
+ {},
+  
+ [ 'ALEX mode',
+  {name: 'Fluidics', wave: '0Pd..........'},
+  {name: 'Shutters', wave: '=.579579579=.', phase: 0.2, data: ['idle', 'Cy2', 'Cy3', 'Cy5', 'Cy2', 'Cy3', 'Cy5','Cy2', 'Cy3', 'Cy5', 'idle']},
+  {name: 'Camera',   wave: '0.PPPPPPPPPd.'},
+ ],
+  
+ {},
+ [ 'ALEX timelapse',
+  {name: 'Fluidics', wave: '0Pd..........'},
+  {name: 'Shutters', wave: '=.7900790079=', phase: 0.2, data: ['idle', 'Cy3', 'Cy5', 'Cy3', 'Cy5', 'Cy3', 'Cy5', 'idle']},
+  {name: 'Camera',   wave: '0.PP00PP00PPd'},
+ ],
+ {},
+  ],
+   head: {text: ['tspan', {class: 'H4'}, 'Wafeforms']},
+
+ config: {hscale: 1, skin: 'normal'},
+ edge: ['A+B Δ1', 'B+C Δ2']
+}
