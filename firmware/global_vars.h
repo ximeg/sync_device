@@ -56,7 +56,7 @@ typedef struct
     uint8_t idle;
     bool ALEX;
 } Shutter;
-Shutter g_shutter{0, SHUTTERS_MASK, false};
+Shutter g_shutter{SHUTTERS_MASK, 0, false};
 
 // Timer 1 configuration for generation of pulsetrains
 typedef struct

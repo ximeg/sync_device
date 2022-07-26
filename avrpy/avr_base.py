@@ -5,7 +5,8 @@ from enum import Enum
 from time import sleep
 from .__version__ import __version__
 from .constants import ms, MHz
-import ctypes
+from ctypes import c_uint16 as c16
+from ctypes import c_uint8 as c8
 
 
 class RegisterBase(Enum):
@@ -33,8 +34,13 @@ def _compare_versions(v1, v2):
     }
 
 
-def _pad(data: bytearray, length=9):
+def pad(data: bytearray, length=9):
     return data + bytearray([0] * (length - len(data)))
+
+
+def cts16(value):
+    assert value < 2**16
+    return c16(int(value * ms * 16 * MHz / 1024))
 
 
 class AVR_Base(object):
@@ -113,7 +119,7 @@ class AVR_Base(object):
 
     def _get_8bit_register(self, addr):
         self.serial.reset_input_buffer()
-        self.serial.write(_pad(bytearray([ord("R"), addr])))
+        self.serial.write(pad(b"R" + c8(addr)))
         return ord(self.serial.read(1))
 
     def _get_16bit_register(self, addrL):
@@ -122,7 +128,7 @@ class AVR_Base(object):
         return byte_H << 8 | byte_L
 
     def _set_8bit_register(self, addr, x):
-        cmd = bytearray(_pad([ord("W"), addr, x]))
+        cmd = pad(b"W" + c8(addr) + c8(x))
         if self._transaction_mode_:
             self._buffer_ += cmd
             if len(self._buffer_) > 63:
@@ -136,27 +142,39 @@ class AVR_Base(object):
         self._set_8bit_register(addrL + 1, byte_H)
         self._set_8bit_register(addrL, byte_L)
 
-    def start_trigger(self, exp_time_ms, n_frames=0, cam_delay_ms=0, inj_delay_ms=0):
+    def set_fluidics_delay(self, delay_ms=0):
         """
-        Configure and start the camera trigger (timer/counter 1).
+        Set delay between the fluidic trigger and the start of the timer
         """
-        uint16 = lambda x: bytes(ctypes.c_ushort(x))
-        uint16_cts = lambda time_ms: uint16(int(time_ms * ms * 16 * MHz / 1024))
+        self.serial.write(pad(b"F" + c16(delay_ms)))
+
+    def start_stroboscopic_acquisition(
+        self, exp_time_ms, n_frames=0, interframe_time=0, timelapse_delay=0
+    ):
+        """
+        Configure and start the camera trigger (timer/counter 1) in the stroboscopic / ALEX / timelapse mode
+        """
         self.serial.write(
-            _pad(
+            pad(
                 b"S"
-                + uint16_cts(exp_time_ms)
-                + uint16(n_frames)
-                + uint16_cts(cam_delay_ms)
-                + uint16_cts(inj_delay_ms)
+                + cts16(exp_time_ms)
+                + c16(n_frames)
+                + cts16(interframe_time)
+                + c16(timelapse_delay)
             )
         )
 
-    def stop_trigger(self):
+    def start_continuous_acquisition(self, exp_time_ms, n_frames=0):
+        """
+        Configure and start the camera trigger (timer/counter 1).
+        """
+        self.serial.write(pad(b"C" + cts16(exp_time_ms) + c16(n_frames)))
+
+    def stop(self):
         """
         Stop running camera trigger
         """
-        self.serial.write(_pad(b"Q"))
+        self.serial.write(pad(b"Q"))
 
     def set_exposure(self, exp_time_ms):
         """
@@ -164,9 +182,7 @@ class AVR_Base(object):
         but would immediate change interrup a running trigger and change its period
         on the fly.
         """
-        uint16 = lambda x: bytes(ctypes.c_ushort(x))
-        uint16_cts = lambda time_ms: uint16(int(time_ms * ms * 16 * MHz / 1024))
-        self.serial.write(_pad(b"E" + uint16_cts(exp_time_ms)))
+        self.serial.write(pad(b"E" + cts16(exp_time_ms)))
 
     def _bitlist2int(self, bitlist, rev=False):
         """Convert list of bits into integer. Example: [1, 1, 0, 1, 0] => b11011"""
@@ -186,7 +202,7 @@ class AVR_Base(object):
         a = self._bitlist2int(active, rev=True)
         i = self._bitlist2int(idle, rev=True) if idle is not None else 0xFF - a
         ALEX = 1 if ALEX else 0
-        self.serial.write(_pad(bytearray([ord("L"), a, i, ALEX])))
+        self.serial.write(pad(b"L" + c8(a) + c8(i) + c8(ALEX)))
 
 
 def define_AVR(RegisterList: RegisterBase):

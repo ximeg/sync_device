@@ -379,9 +379,11 @@ void loop()
       case 'S':
       case 's':
         if (data.T.exp_time_n64us < 5)
+        {
           // don't bother, the period is too short
-          Serial.print("ERR\n");
-        break;
+          send_err();
+          break;
+        }
 
         reset_timer1();
         write_shutters(g_shutter.idle);
