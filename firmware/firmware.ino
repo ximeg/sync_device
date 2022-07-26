@@ -1,4 +1,4 @@
-#define VERSION "0.3.0"
+#define VERSION "0.3.0\n"
 
 #include <stdint.h>
 #include <Arduino.h>
@@ -12,6 +12,10 @@
 /***************
 HELPER FUNCTIONS
 ****************/
+
+// Serial port shortcuts
+inline void send_ok() { Serial.print("OK\n"); }
+inline void send_err() { Serial.print("ERR\n"); }
 
 // Check whether ALEX mask contains more than one bit
 bool is_alex_active()
@@ -119,7 +123,7 @@ TRANSITIONS
 // Condition: acquired enough frames
 inline void normal2idle()
 {
-  if (system_status == STATUS::NORMAL_FRAME)
+  if (system_status == STATUS::CONTINUOUS_FRAME)
   {
     if (g_timer1.n_frames > 0) // There is a frame limit
     {
@@ -135,7 +139,7 @@ inline void normal2idle()
 // Condition: timelapse is active
 inline void normal2skip()
 {
-  if (system_status == STATUS::NORMAL_FRAME)
+  if (system_status == STATUS::CONTINUOUS_FRAME)
   {
     if (g_timelapse.skip > 0)
     {
@@ -152,7 +156,7 @@ inline void skip2normal()
   {
     if (skipped_count >= g_timelapse.skip)
     {
-      system_status = STATUS::NORMAL_FRAME; // Next frame is normal
+      system_status = STATUS::CONTINUOUS_FRAME; // Next frame is normal
     }
   }
 }
@@ -236,7 +240,7 @@ ISR(TIMER1_OVF_vect)
 
   switch (system_status)
   {
-  case STATUS::NORMAL_FRAME:
+  case STATUS::CONTINUOUS_FRAME:
     write_shutters(g_shutter.active);
     break;
 
@@ -278,7 +282,7 @@ ISR(TIMER1_OVF_vect)
     // Since we delayed the camera, we should wait more here
     delayMicroseconds(g_timer1.shutter_delay_cts << 6);
     write_shutters(g_shutter.idle);
-    Serial.println("DONE");
+    Serial.print("DONE\n");
     break;
 
   default: // do nothing;
@@ -343,97 +347,114 @@ void loop()
     Serial.flush();
     // Notify the host that we are ready
     Serial.print("Arduino is ready. Firmware version: ");
-    Serial.println(VERSION);
+    Serial.print(VERSION);
     system_is_up = true;
   }
 
   // Parse the command
   if (Serial.available() > 0)
   {
-    charsRead = Serial.readBytes(data.bytes, 3);
-    if (charsRead == 3)
+    charsRead = Serial.readBytes(data.bytes, 9);
+    if (charsRead == 9)
     {
       switch (data.cmd)
       {
-      case 'A':
-      case 'a':
-        g_ALEX.mask = data.A.mask;
-        g_ALEX.alternate = data.A.alternate;
-        alex_last_laser = 0;
-        while (data.A.mask >>= 1)
-        {
-          alex_last_laser++;
-        }
-        break;
+        /*case 'A':
+        case 'a':
+          g_ALEX.mask = data.A.mask;
+          g_ALEX.alternate = data.A.alternate;
+          alex_last_laser = 0;
+          while (data.A.mask >>= 1)
+          {
+            alex_last_laser++;
+          }
+          break;*/
 
-      case 'T':
-      case 't':
-        if (g_timer1.exp_time_n64us == 0)
-          break; // don't bother, period is zero
-
-        // Read the remaining data from the packet
-        charsRead = Serial.readBytes(data.bytes + 3, 6);
-        if (charsRead == 6)
-        {
-          reset_timer1();
-          write_shutters(g_shutter.idle);
-
-          Serial.println("START");
-          memcpy(&g_timer1, &data.T, sizeof(g_timer1));
-
-          trigger_fluidics();
-
-          n_acquired_frames = 0;
-
-          // The first frame can either be NORMAL or ALEX
-          system_status = is_alex_active() ? STATUS::ALEX_FRAME : STATUS::NORMAL_FRAME;
-
-          start_timer1();
-          fluidic_pin_down();
-          break;
-        }
-
-      case 'W':
-      case 'w':
-        // Write the value to the register with given address
-        MEM_IO_8bit(data.R.addr) = data.R.value;
-        break;
-
+      /* Read register */
       case 'R':
       case 'r':
         // Read the value from the given register
         Serial.write(MEM_IO_8bit(data.R.addr));
         break;
 
-      // Remember the shutter state (keeps only 4 bits)
-      case 'S':
-      case 's':
-        g_shutter.active = decode_shutter_bits(data.S.active);
-        g_shutter.idle = decode_shutter_bits(data.S.idle);
+      /* Write register */
+      case 'W':
+      case 'w':
+        // Write the value to the register with given address
+        MEM_IO_8bit(data.R.addr) = data.R.value;
+        break;
+
+      /* Set fluidics delay */
+      case 'F':
+      case 'f':
+        // Save the fluidics time delay
+        g_fluidics.fluidics_delay_ms = data.F.fluidics_delay_ms;
+        send_ok();
+        break;
+
+      /* Set laser shutter states */
+      case 'L':
+      case 'l':
+        g_shutter.active = decode_shutter_bits(data.L.active);
+        g_shutter.idle = decode_shutter_bits(data.L.idle);
+        g_shutter.ALEX = data.L.ALEX;
 
         if (system_status == STATUS::IDLE)
           write_shutters(g_shutter.idle);
 
-        if (system_status == STATUS::NORMAL_FRAME)
+        if (system_status == STATUS::CONTINUOUS_FRAME)
           write_shutters(g_shutter.active);
 
+        send_ok();
         break;
 
-      case 'L':
-      case 'l':
-        g_timelapse.skip = data.L.skip;
+      /* Start acquisition */
+      case 'C':
+      case 'c':
+      case 'S':
+      case 's':
+        if (data.T.exp_time_n64us < 5)
+          // don't bother, the period is too short
+          Serial.print("ERR\n");
         break;
 
+        reset_timer1();
+        write_shutters(g_shutter.idle);
+
+        memcpy(&g_timer1, &data.T, sizeof(g_timer1));
+
+        trigger_fluidics();
+
+        n_acquired_frames = 0;
+
+        if (data.cmd == 'c' || data.cmd == 'C')
+        {
+          system_status = STATUS::CONTINUOUS_FRAME;
+        }
+        else
+        {
+          system_status = g_shutter.ALEX ? STATUS::ALEX_FRAME : STATUS::STROBO_FRAME;
+        }
+
+        start_timer1();
+        fluidic_pin_down();
+        send_ok();
+        break;
+
+      /* Change the exposure time (on the fly) */
       case 'E':
       case 'e':
         g_timer1.exp_time_n64us = data.T.exp_time_n64us;
         start_timer1();
+        send_ok();
         break;
 
+      /* Stop timer, if running */
       case 'Q':
       case 'q':
         reset_timer1();
         write_shutters(g_shutter.idle);
+        send_ok();
         break;
       }
     }

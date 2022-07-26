@@ -102,9 +102,10 @@ bool system_is_up = false;
 enum STATUS
 {
     IDLE = 0,
-    NORMAL_FRAME = 1,
-    SKIP_FRAME = 2,
-    ALEX_FRAME = 3,
+    CONTINUOUS_FRAME = 1,
+    ALEX_FRAME = 2,
+    STROBO_FRAME = 3,
+    SKIP_FRAME = 4,
 };
 
 volatile uint8_t system_status = STATUS::IDLE;
