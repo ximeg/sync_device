@@ -1,12 +1,42 @@
+from argparse import ArgumentError
 from cProfile import run
 from numpy import byte
-import serial
+from serial import Serial
 from enum import Enum
 from time import sleep
 from .__version__ import __version__
 from .constants import ms, MHz
-from ctypes import c_uint16 as c16
-from ctypes import c_uint8 as c8
+from ctypes import c_uint16
+from ctypes import c_uint8
+
+
+def c16(value):
+    assert value < 2**16, "value exceeds 16 bit"
+    return c_uint16(value)
+
+
+def c8(value):
+    assert value < 2**8, "value exceeds 8 bit"
+    return c_uint16(value)
+
+
+class SyncDeviceError(ValueError):
+    def __init__(self, reply, message="Incorrect args supplied to the sync device."):
+        self.reply = reply
+        self.message = message + "\nDevice reply:\n -> " + reply
+        super().__init__(self.message)
+
+
+class Port(Serial):
+    def __enter__(self):
+        self.reset_input_buffer()
+        return self
+
+    def __exit__(self, *args, **kwargs):
+        reply = self.readline().strip().decode()
+        if reply == "OK":
+            return True
+        raise SyncDeviceError(reply)
 
 
 class RegisterBase(Enum):
@@ -51,15 +81,15 @@ class AVR_Base(object):
     """
 
     def __init__(self, port, baudrate):
-        self.serial = serial.Serial(port, baudrate=baudrate)
-        if not self.serial.is_open:
-            self.serial.open()
+        self.com = Port(port, baudrate=baudrate)
+        if not self.com.is_open:
+            self.com.open()
 
         # Opening of the serial port resets Arduino
         # We are going to wait for it to start up
-        self.serial.timeout = 5  # seconds
-        msg = self.serial.readline().strip().decode()
-        self.serial.timeout = 10 * ms
+        self.com.timeout = 5  # seconds
+        msg = self.com.readline().strip().decode()
+        self.com.timeout = 10 * ms
 
         # Ensure that firmware and driver have the same version
         msg_template = "Arduino is ready. Firmware version: "
@@ -78,14 +108,14 @@ class AVR_Base(object):
                     f"Version mismatch: driver {__version__} != firmware {v}"
                 )
 
-        self.serial.reset_input_buffer()
+        self.com.reset_input_buffer()
         sleep(100 * ms)
 
         self._transaction_mode_ = False
         self._buffer_ = bytearray()
 
     def __del__(self):
-        self.serial.close()
+        self.com.close()
 
     def __enter__(self):
         """
@@ -98,7 +128,7 @@ class AVR_Base(object):
         """
         Exit a transaction - transmit all cached data to the microcontroller
         """
-        self.serial.write(self._buffer_)
+        self.com.write(self._buffer_)
         self._buffer_ = bytearray()
         self._transaction_mode_ = False
 
@@ -119,9 +149,9 @@ class AVR_Base(object):
             ValueError(f"Unknown register {register}")
 
     def _get_8bit_register(self, addr):
-        self.serial.reset_input_buffer()
-        self.serial.write(pad(b"R" + c8(addr)))
-        return ord(self.serial.read(1))
+        self.com.reset_input_buffer()
+        self.com.write(pad(b"R" + c8(addr)))
+        return ord(self.com.read(1))
 
     def _get_16bit_register(self, addrL):
         byte_L = self._get_8bit_register(addrL)
@@ -135,7 +165,7 @@ class AVR_Base(object):
             if len(self._buffer_) > 63:
                 raise MemoryError("Buffer overflow: more than 64 bytes of data cached.")
         else:
-            self.serial.write(cmd)
+            self.com.write(cmd)
 
     def _set_16bit_register(self, addrL, x):
         byte_L = x & 0xFF
@@ -147,7 +177,8 @@ class AVR_Base(object):
         """
         Set delay between the fluidic trigger and the start of the timer
         """
-        self.serial.write(pad(b"F" + c16(delay_ms)))
+        with self.com as com:
+            com.write(pad(b"F" + c16(delay_ms)))
 
     def start_stroboscopic_acquisition(
         self, exp_time_ms, n_frames=0, interframe_time=0, timelapse_delay=0
@@ -155,27 +186,30 @@ class AVR_Base(object):
         """
         Configure and start the camera trigger (timer/counter 1) in the stroboscopic / ALEX / timelapse mode
         """
-        self.serial.write(
-            pad(
-                b"S"
-                + cts16(exp_time_ms)
-                + c16(n_frames)
-                + cts16(interframe_time)
-                + c16(timelapse_delay)
+        with self.com as com:
+            com.write(
+                pad(
+                    b"S"
+                    + cts16(exp_time_ms)
+                    + c16(n_frames)
+                    + cts16(interframe_time)
+                    + c16(timelapse_delay)
+                )
             )
-        )
 
     def start_continuous_acquisition(self, exp_time_ms, n_frames=0):
         """
         Configure and start the camera trigger (timer/counter 1).
         """
-        self.serial.write(pad(b"C" + cts16(exp_time_ms) + c16(n_frames)))
+        with self.com as com:
+            com.write(pad(b"C" + cts16(exp_time_ms) + c16(n_frames)))
 
     def stop(self):
         """
         Stop running camera trigger
         """
-        self.serial.write(pad(b"Q"))
+        with self.com as com:
+            com.write(pad(b"Q"))
 
     def set_exposure(self, exp_time_ms):
         """
@@ -183,7 +217,8 @@ class AVR_Base(object):
         but would immediate change interrup a running trigger and change its period
         on the fly.
         """
-        self.serial.write(pad(b"E" + cts16(exp_time_ms)))
+        with self.com as com:
+            com.write(pad(b"E" + cts16(exp_time_ms)))
 
     def _bitlist2int(self, bitlist, rev=False):
         """Convert list of bits into integer. Example: [1, 1, 0, 1, 0] => b11011"""
@@ -203,7 +238,8 @@ class AVR_Base(object):
         a = self._bitlist2int(active, rev=True)
         i = self._bitlist2int(idle, rev=True) if idle is not None else 0xFF - a
         ALEX = 1 if ALEX else 0
-        self.serial.write(pad(b"L" + c8(a) + c8(i) + c8(ALEX)))
+        with self.com as com:
+            com.write(pad(b"L" + c8(a) + c8(i) + c8(ALEX)))
 
 
 def define_AVR(RegisterList: RegisterBase):

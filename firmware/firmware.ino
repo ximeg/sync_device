@@ -16,6 +16,11 @@ HELPER FUNCTIONS
 // Serial port shortcuts
 inline void send_ok() { Serial.print("OK\n"); }
 inline void send_err() { Serial.print("ERR\n"); }
+inline void send_err(const char *msg)
+{
+  Serial.print(msg);
+  Serial.print("\n");
+}
 
 uint8_t count_bits(uint8_t v)
 {
@@ -355,7 +360,7 @@ void loop()
           if (data.L.active & (data.L.active - 1) == 0)
           {
             // Less than two spectral channels - can't do ALEX!
-            send_err();
+            send_err("ALEX error: not enough channels");
             break;
           }
         }
@@ -381,7 +386,7 @@ void loop()
         if (data.T.exp_time_n64us < 5)
         {
           // don't bother, the period is too short
-          send_err();
+          send_err("ACQ error: exposure time is too short");
           break;
         }
 
