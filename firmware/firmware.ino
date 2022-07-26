@@ -17,12 +17,6 @@ HELPER FUNCTIONS
 inline void send_ok() { Serial.print("OK\n"); }
 inline void send_err() { Serial.print("ERR\n"); }
 
-// Check whether ALEX mask contains more than one bit
-bool is_alex_active()
-{
-  return (g_ALEX.mask & (g_ALEX.mask - 1)) != 0;
-}
-
 uint8_t count_bits(uint8_t v)
 {
   unsigned int c; // c accumulates the total bits set in v
@@ -56,22 +50,9 @@ uint8_t decode_shutter_bits(uint8_t rx_bits)
 
 inline void trigger_fluidics()
 {
-  // Send trigger to fluidic system
   fluidic_pin_up();
-
-  // Wait for given number of 64us intervals (up to 1023!)
-  uint16_t d = g_timer1.injection_delay_cts;
-  if (d > 2 && d < 156)
-  {
-    delayMicroseconds((d - 2) << 6);
-    fluidic_pin_down();
-  }
-  else
-  {
-    delayMicroseconds(10000);
-    fluidic_pin_down();
-    delay(d >> 4);
-  }
+  delay(g_fluidics.fluidics_delay_ms);
+  fluidic_pin_down();
 }
 
 inline void reset_timer1()
@@ -97,7 +78,7 @@ inline void start_timer1()
   ICR1 = max(g_timer1.exp_time_n64us, 3);
 
   // Set delay between shutter and camera
-  OCR1A = g_timer1.shutter_delay_cts;
+  OCR1A = 10;                   // TODO: UNDEFINED BEHAVIOR!!!! Was g_timer1.shutter_delay_cts;
   OCR1A = min(OCR1A, ICR1 - 2); // Sanity check: make sure OCR1A is lower than ICR1
 
   // 12.5% duty cycle, at least 1 count, at most 10ms
@@ -136,31 +117,6 @@ inline void normal2idle()
   }
 }
 
-// Condition: timelapse is active
-inline void normal2skip()
-{
-  if (system_status == STATUS::CONTINUOUS_FRAME)
-  {
-    if (g_timelapse.skip > 0)
-    {
-      skipped_count = 0;
-      system_status = STATUS::SKIP_FRAME; // We should skip the next frame
-    }
-  }
-}
-
-// Condition: enough frames skipped
-inline void skip2normal()
-{
-  if (system_status == STATUS::SKIP_FRAME && !is_alex_active())
-  {
-    if (skipped_count >= g_timelapse.skip)
-    {
-      system_status = STATUS::CONTINUOUS_FRAME; // Next frame is normal
-    }
-  }
-}
-
 // Condition: enough frames acquired
 inline void alex2idle()
 {
@@ -168,7 +124,7 @@ inline void alex2idle()
   {
     if (g_timer1.n_frames > 0) // There is a frame limit
     {
-      uint16_t N = g_timer1.n_frames * count_bits(g_ALEX.mask);
+      uint16_t N = g_timer1.n_frames * count_bits(g_shutter.active);
 
       if (n_acquired_frames >= N) // We acquired enough frames!
       {
@@ -180,9 +136,9 @@ inline void alex2idle()
 }
 
 // Condition: last spectral channel acquired and timelapse is active
-inline void alex2skip()
+inline void alex2skip() /// TODO: we are not counting skipped frames! This function is incorrect
 {
-  if (system_status == STATUS::ALEX_FRAME && g_timelapse.skip > 0)
+  if (system_status == STATUS::ALEX_FRAME && g_timer1.timelapse_delay_s > 0)
   {
     if (n_acquired_frames > 0) // Make sure we don't skip from the start
     {
@@ -196,11 +152,11 @@ inline void alex2skip()
 }
 
 // Condition: enough frames skipped and ALEX is active
-inline void skip2alex()
+inline void skip2alex() /// TODO: we are not counting skipped frames! This function is incorrect
 {
-  if (system_status == STATUS::SKIP_FRAME && is_alex_active())
+  if (system_status == STATUS::SKIP_FRAME && g_shutter.ALEX)
   {
-    if (skipped_count >= g_timelapse.skip)
+    if (skipped_count >= g_timer1.timelapse_delay_s)
     {
       system_status = STATUS::ALEX_FRAME; // Next frame is ALEX
     }
@@ -219,8 +175,6 @@ inline void skip2alex()
 void prepare_next_frame()
 {
   normal2idle();
-  normal2skip();
-  skip2normal();
   alex2idle();
   alex2skip();
   skip2alex();
@@ -246,19 +200,19 @@ ISR(TIMER1_OVF_vect)
 
   case STATUS::SKIP_FRAME:
     skipped_count++;
-    // Since we delayed the camera, we should wait more here
-    delayMicroseconds(g_timer1.shutter_delay_cts << 6);
     write_shutters(0);
+    // Since we delayed the camera, we should wait more here ???????
+    delay(g_timer1.timelapse_delay_s);
     break;
 
   case STATUS::ALEX_FRAME:
     // Cycle through spectral channels and set laser shutters
-    if (g_ALEX.alternate)
+    if (g_shutter.ALEX)
     {
 
       while (!laser)
       {
-        laser = (g_ALEX.mask >> alex_laser_i) & 1;
+        laser = (g_shutter.active >> alex_laser_i) & 1;
         if (laser)
         {
           write_shutters(decode_shutter_bits(bit(alex_laser_i)));
@@ -271,7 +225,7 @@ ISR(TIMER1_OVF_vect)
     }
     else
     {
-      write_shutters(g_ALEX.mask);
+      write_shutters(g_shutter.active);
       alex_laser_i = 0;
     }
     break;
@@ -279,8 +233,8 @@ ISR(TIMER1_OVF_vect)
   case STATUS::IDLE:
     reset_timer1();
 
-    // Since we delayed the camera, we should wait more here
-    delayMicroseconds(g_timer1.shutter_delay_cts << 6);
+    // Since we delayed the camera, we should wait more here ???????
+    delay(10); // enough to read out a frame
     write_shutters(g_shutter.idle);
     Serial.print("DONE\n");
     break;
@@ -395,6 +349,17 @@ void loop()
       /* Set laser shutter states */
       case 'L':
       case 'l':
+        // Ensure that more than one spectral channel is selected if ALEX is on
+        if (data.L.ALEX)
+        {
+          if (data.L.active & (data.L.active - 1) == 0)
+          {
+            // Less than two spectral channels - can't do ALEX!
+            send_err();
+            break;
+          }
+        }
+
         g_shutter.active = decode_shutter_bits(data.L.active);
         g_shutter.idle = decode_shutter_bits(data.L.idle);
         g_shutter.ALEX = data.L.ALEX;
