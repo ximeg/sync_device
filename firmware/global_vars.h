@@ -42,38 +42,31 @@ typedef struct
     uint8_t value;
 } Register;
 
+// Fluidics delay
+typedef struct g_fluidics
+{
+    uint16_t fluidics_delay_ms;
+} Fluidics;
+Fluidics g_fluidics{0};
+
 // Laser shutter states - in active and idle mode
 typedef struct
 {
-    uint8_t active;
     uint8_t idle;
+    uint8_t active;
+    bool ALEX;
 } Shutter;
-Shutter g_shutter{SHUTTERS_MASK, 0};
+Shutter g_shutter{0, SHUTTERS_MASK, false};
 
 // Timer 1 configuration for generation of pulsetrains
 typedef struct
 {
-    uint16_t timer_period_cts;
-    uint16_t n_frames;            // number of frames
-    uint16_t shutter_delay_cts;   // camera delay, in timer counts
-    uint16_t injection_delay_cts; // injection delay, in timer counts
+    uint16_t exp_time_n64us;        // laser exposure, in timer counts
+    uint16_t n_frames;              // number of frames
+    uint16_t interframe_time_n64us; // interframe delay for strobe mode, in timer counts
+    uint16_t timelapse_delay_s;     // timelapse delay, in seconds
 } Timer1;
-Timer1 g_timer1{600, 7, 16, 48};
-
-// Timelapse configuration - number frames to skip
-typedef struct
-{
-    uint16_t skip;
-} Timelapse;
-Timelapse g_timelapse{0};
-
-// Alternating laser excitation - bit mask showing which spectral channels are active
-typedef struct
-{
-    uint8_t mask;
-    uint8_t alternate;
-} ALEX;
-ALEX g_ALEX{0};
+Timer1 g_timer1{600, 7, 160, 2};
 
 // Data packet for serial communication
 union Data
@@ -86,11 +79,10 @@ union Data
         // Each represents arguments of the command after which it is named
         union
         {
-            Register R;  // register access (R/W)
-            Shutter S;   // shutter control
-            Timer1 T;    // timer configuration and E - exposure time
-            Timelapse L; // L - timelapse
-            ALEX A;      // A - ALEX mask for shutters
+            Register R; // register access (R/W)
+            Fluidics F; // fluidics control
+            Shutter L;  // laser shutter control and ALEX
+            Timer1 T;   // timer1 configuration
         };
     };
 
@@ -99,7 +91,7 @@ union Data
 
 #pragma pack(pop) /* restore original alignment from stack */
 
-int charsRead;
+size_t charsRead;
 
 /***************************************
 SYSTEM STATUS VARIABLES

@@ -90,7 +90,7 @@ inline void reset_timer1()
 inline void start_timer1()
 {
   // Set timer period to requested value, and at least 3 counts
-  ICR1 = max(g_timer1.timer_period_cts, 3);
+  ICR1 = max(g_timer1.exp_time_n64us, 3);
 
   // Set delay between shutter and camera
   OCR1A = g_timer1.shutter_delay_cts;
@@ -368,7 +368,7 @@ void loop()
 
       case 'T':
       case 't':
-        if (g_timer1.timer_period_cts == 0)
+        if (g_timer1.exp_time_n64us == 0)
           break; // don't bother, period is zero
 
         // Read the remaining data from the packet
@@ -426,7 +426,7 @@ void loop()
 
       case 'E':
       case 'e':
-        g_timer1.timer_period_cts = data.T.timer_period_cts;
+        g_timer1.exp_time_n64us = data.T.exp_time_n64us;
         start_timer1();
         break;
 
