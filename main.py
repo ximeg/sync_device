@@ -2,7 +2,7 @@ from avrpy.mega328P import Mega328P
 from avrpy import *
 from time import sleep
 
-COM = "COM3"
+COM = "COM6"
 
 if __name__ == "__main__":
     avr = Mega328P(COM)

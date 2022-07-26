@@ -1,4 +1,5 @@
 from cProfile import run
+from numpy import byte
 import serial
 from enum import Enum
 from time import sleep
@@ -30,6 +31,10 @@ def _compare_versions(v1, v2):
         k: a == b
         for k, a, b in zip(["major", "minor", "patch"], v1.split("."), v2.split("."))
     }
+
+
+def _pad(data: bytearray, length=9):
+    return data + bytearray([0] * (length - len(data)))
 
 
 class AVR_Base(object):
@@ -108,7 +113,7 @@ class AVR_Base(object):
 
     def _get_8bit_register(self, addr):
         self.serial.reset_input_buffer()
-        self.serial.write(bytearray([ord("R"), addr, 0]))
+        self.serial.write(_pad(bytearray([ord("R"), addr])))
         return ord(self.serial.read(1))
 
     def _get_16bit_register(self, addrL):
@@ -117,7 +122,7 @@ class AVR_Base(object):
         return byte_H << 8 | byte_L
 
     def _set_8bit_register(self, addr, x):
-        cmd = bytearray([ord("W"), addr, x])
+        cmd = bytearray(_pad([ord("W"), addr, x]))
         if self._transaction_mode_:
             self._buffer_ += cmd
             if len(self._buffer_) > 63:
@@ -138,8 +143,8 @@ class AVR_Base(object):
         uint16 = lambda x: bytes(ctypes.c_ushort(x))
         uint16_cts = lambda time_ms: uint16(int(time_ms * ms * 16 * MHz / 1024))
         self.serial.write(
-            bytearray(
-                b"T"
+            _pad(
+                b"S"
                 + uint16_cts(exp_time_ms)
                 + uint16(n_frames)
                 + uint16_cts(cam_delay_ms)
@@ -151,7 +156,7 @@ class AVR_Base(object):
         """
         Stop running camera trigger
         """
-        self.serial.write(bytearray(b"Q\x00\x00"))
+        self.serial.write(_pad(b"Q"))
 
     def set_exposure(self, exp_time_ms):
         """
@@ -161,7 +166,7 @@ class AVR_Base(object):
         """
         uint16 = lambda x: bytes(ctypes.c_ushort(x))
         uint16_cts = lambda time_ms: uint16(int(time_ms * ms * 16 * MHz / 1024))
-        self.serial.write(bytearray(b"E" + uint16_cts(exp_time_ms)))
+        self.serial.write(_pad(b"E" + uint16_cts(exp_time_ms)))
 
     def _bitlist2int(self, bitlist, rev=False):
         """Convert list of bits into integer. Example: [1, 1, 0, 1, 0] => b11011"""
@@ -172,30 +177,16 @@ class AVR_Base(object):
             out = (out << 1) | bit
         return out
 
-    def set_shutters(self, running, idle=None):
+    def set_shutters(self, active, idle=None, ALEX=False):
         """
-        Set shutter state for running and idle cases.
-        If idle is not provided, it will be the inverse of running.
+        Set shutter state for active and idle cases.
+        If idle is not provided, it will be the inverse of active.
         Expected input: list of four values, order: cy2, cy3, cy5, cy7.
         """
-        r = self._bitlist2int(running, rev=True)
-        i = self._bitlist2int(idle, rev=True) if idle is not None else 0xFF - r
-        self.serial.write(bytearray([ord("S"), r, i]))
-
-    def set_timelapse(self, skip=0):
-        """
-        Set number of frames to skip for timelapse imaging. 0 means no timelapse.
-        Remember, the camera exposure control must be set to internal!
-        """
-        uint16 = lambda x: bytes(ctypes.c_ushort(x))
-        self.serial.write(bytearray(b"L" + uint16(skip)))
-
-    def set_ALEX(self, bitlist):
-        """
-        Set alternate laser excitation (ALEX). Provide [0,0,0,0] to deactivate
-        """
-        r = self._bitlist2int(bitlist, rev=True)
-        self.serial.write(bytearray([ord("A"), r, 0]))
+        a = self._bitlist2int(active, rev=True)
+        i = self._bitlist2int(idle, rev=True) if idle is not None else 0xFF - a
+        ALEX = 1 if ALEX else 0
+        self.serial.write(_pad(bytearray([ord("L"), a, i, ALEX])))
 
 
 def define_AVR(RegisterList: RegisterBase):

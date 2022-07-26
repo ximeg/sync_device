@@ -52,8 +52,8 @@ Fluidics g_fluidics{0};
 // Laser shutter states - in active and idle mode
 typedef struct
 {
-    uint8_t idle;
     uint8_t active;
+    uint8_t idle;
     bool ALEX;
 } Shutter;
 Shutter g_shutter{0, SHUTTERS_MASK, false};
