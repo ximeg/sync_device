@@ -39,8 +39,9 @@ def pad(data: bytearray, length=9):
 
 
 def cts16(value):
-    assert value < 2**16
-    return c16(int(value * ms * 16 * MHz / 1024))
+    cts = int(value * ms * 16 * MHz / 1024)
+    assert cts < 2**16, "Number of counts exceeds 16bit"
+    return c16(cts)
 
 
 class AVR_Base(object):
