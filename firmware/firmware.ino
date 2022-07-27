@@ -14,9 +14,10 @@ HELPER FUNCTIONS
 ****************/
 
 // Serial port shortcuts
-inline void send_ok() { Serial.print("OK\n"); }
-inline void send_err() { Serial.print("ERR\n"); }
-inline void send_err(const char *msg)
+#define helper static inline void
+helper send_ok() { Serial.print("OK\n"); }
+helper send_err() { Serial.print("ERR\n"); }
+helper send_err(const char *msg)
 {
   Serial.print(msg);
   Serial.print("\n");
@@ -33,13 +34,13 @@ uint8_t count_bits(uint8_t v)
   return c;
 }
 
-inline void camera_pin_up() { CAMERA_PORT |= bit(CAMERA_PIN); }
-inline void camera_pin_down() { CAMERA_PORT &= ~bit(CAMERA_PIN); }
+helper camera_pin_up() { CAMERA_PORT |= bit(CAMERA_PIN); }
+helper camera_pin_down() { CAMERA_PORT &= ~bit(CAMERA_PIN); }
 
-inline void fluidic_pin_up() { FLUIDIC_PORT |= bit(FLUIDIC_PIN); }
-inline void fluidic_pin_down() { FLUIDIC_PORT &= ~bit(FLUIDIC_PIN); }
+helper fluidic_pin_up() { FLUIDIC_PORT |= bit(FLUIDIC_PIN); }
+helper fluidic_pin_down() { FLUIDIC_PORT &= ~bit(FLUIDIC_PIN); }
 
-inline void write_shutters(uint8_t value)
+helper write_shutters(uint8_t value)
 {
   SHUTTERS_PORT = (SHUTTERS_PORT & ~SHUTTERS_MASK) | value;
 }
@@ -53,14 +54,14 @@ uint8_t decode_shutter_bits(uint8_t rx_bits)
   return (cy2_bit << CY2_PIN) | (cy3_bit << CY3_PIN) | (cy5_bit << CY5_PIN) | (cy7_bit << CY7_PIN);
 }
 
-inline void trigger_fluidics()
+helper trigger_fluidics()
 {
   fluidic_pin_up();
   delay(g_fluidics.fluidics_delay_ms);
   fluidic_pin_down();
 }
 
-inline void reset_timer1()
+helper reset_timer1()
 {
   // WGM mode 14, prescaler clk/1024 (datasheet tables 15-5 & 15-6)
   TCCR1A = bit(WGM11);
@@ -77,7 +78,7 @@ inline void reset_timer1()
   alex_laser_i = 0;
 }
 
-inline void start_timer1()
+helper start_timer1()
 {
   // Set timer period to requested value, and at least 3 counts
   ICR1 = max(g_timer1.exp_time_n64us, 3);
@@ -107,7 +108,7 @@ TRANSITIONS
 ***********/
 
 // Condition: acquired enough frames
-inline void normal2idle()
+helper normal2idle()
 {
   if (system_status == STATUS::CONTINUOUS_FRAME)
   {
@@ -123,7 +124,7 @@ inline void normal2idle()
 }
 
 // Condition: enough frames acquired
-inline void alex2idle()
+helper alex2idle()
 {
   if (system_status == STATUS::ALEX_FRAME)
   {
@@ -141,7 +142,7 @@ inline void alex2idle()
 }
 
 // Condition: last spectral channel acquired and timelapse is active
-inline void alex2skip() /// TODO: we are not counting skipped frames! This function is incorrect
+helper alex2skip() /// TODO: we are not counting skipped frames! This function is incorrect
 {
   if (system_status == STATUS::ALEX_FRAME && g_timer1.timelapse_delay_s > 0)
   {
@@ -157,7 +158,7 @@ inline void alex2skip() /// TODO: we are not counting skipped frames! This funct
 }
 
 // Condition: enough frames skipped and ALEX is active
-inline void skip2alex() /// TODO: we are not counting skipped frames! This function is incorrect
+helper skip2alex() /// TODO: we are not counting skipped frames! This function is incorrect
 {
   if (system_status == STATUS::SKIP_FRAME && g_shutter.ALEX)
   {
@@ -273,10 +274,6 @@ SYSTEM STARTUP
 ************/
 void setup()
 {
-  // Setup serial port
-  Serial.begin(2000000);
-  Serial.setTimeout(10); // ms
-
   // Setup output ports
   FLUIDIC_DDR |= bit(FLUIDIC_PIN);
   FLUIDIC_PORT &= ~bit(FLUIDIC_PIN);
@@ -289,18 +286,20 @@ void setup()
 
   // Configure timer 1 and setup interrupt
   reset_timer1();
+
+  setup_UART();
 }
 
-/************
-EVENT HANDLING
-************/
-void loop()
+// Setup serial port
+helper setup_UART()
 {
+  Serial.begin(2000000);
+  Serial.setTimeout(10); // ms
+
   // Wait until the serial port is ready
   while (!Serial)
   {
   }
-
   if (!system_is_up)
   {
     Serial.flush();
@@ -309,8 +308,20 @@ void loop()
     Serial.print(VERSION);
     system_is_up = true;
   }
+}
 
-  // Parse the command
+/************
+EVENT HANDLING
+************/
+void loop()
+{
+  parse_command();
+
+  // check_timer_states_transitions_etc();
+}
+
+helper parse_command()
+{
   if (Serial.available() > 0)
   {
     charsRead = Serial.readBytes(data.bytes, 9);
