@@ -92,6 +92,21 @@ enum STATUS
     SKIP_FRAME = 4,
 };
 
+struct SystemStatus
+{
+    STATUS status;
+    bool up;
+    int32_t fluidics_delay_us;
+    LaserShutter L;
+    uint32_t interframe_time_us;
+    uint32_t strobe_duration_us;
+    uint32_t ALEX_cycle_delay_us;
+    uint32_t n_frames;
+} sys{STATUS::IDLE,
+      true,
+      0,
+      {SHUTTERS_MASK, 0, false}};
+
 volatile uint8_t system_status = STATUS::IDLE;
 volatile uint16_t n_acquired_frames = 0; // Total number of acquired frames (pulses to camera)
 volatile uint16_t skipped_count = 0;     // Number of already skipped frames during timelapse
