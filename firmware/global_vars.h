@@ -28,6 +28,11 @@ const uint8_t CAMERA_PIN = PORT5; // pin 13
 #define CAMERA_PORT PORTB
 #define CAMERA_DDR DDRB
 
+// Event loop monitor pin - changes value after every cycle
+const uint8_t EVENT_LOOP_PIN = PORT5; // A5
+#define EVENT_LOOP_PIN_FLIP PINC
+#define EVENT_LOOP_DDR DDRC
+
 /***************************************
 COMMUNICATION PROTOCOL DEFINITIONS
 ***************************************/
@@ -49,7 +54,6 @@ typedef struct
     uint8_t idle;
     bool ALEX;
 } LaserShutter;
-LaserShutter g_shutter{SHUTTERS_MASK, 0, false};
 
 // Data packet for serial communication
 union Data
@@ -61,12 +65,13 @@ union Data
         // All members below share the same chunk of memory
         union
         {
-            Register R;                  // register access (R/W)
-            int32_t fluidics_delay_us;   // fluidics injection delay. If negative, happens before imaging
-            LaserShutter L;              // laser shutter control and ALEX on/off
-            uint32_t interframe_time_us; // time between frames in any imaging mode
-            uint32_t strobe_duration_us; // duration of laser flash in stroboscopic mode
-            uint32_t n_frames;           // number of frames to acquire
+            Register R;                   // register access (R/W)
+            int32_t fluidics_delay_us;    // fluidics injection delay. If negative, happens before imaging
+            LaserShutter Shutter;         // laser shutter control and ALEX on/off
+            uint32_t interframe_time_us;  // time between frames in any imaging mode
+            uint32_t strobe_duration_us;  // duration of laser flash in stroboscopic mode
+            uint32_t ALEX_cycle_delay_us; // duration of delay between ALEX cycles
+            uint32_t n_frames;            // number of frames to acquire
         };
     };
 
@@ -74,8 +79,6 @@ union Data
 } data;
 
 #pragma pack(pop) /* restore original alignment from stack */
-
-size_t charsRead;
 
 /***************************************
 SYSTEM STATUS VARIABLES
@@ -86,7 +89,7 @@ bool system_is_up = false;
 // System status
 enum STATUS
 {
-    IDLE,                 // Doing nothing, waiting for commands
+    IDLE = 0,             // Doing nothing, waiting for commands
     CONTINUOUS_ACQ_START, // First frame that will be discarded
     CONTINUOUS_ACQ,       // Running continuous acquisition
     CONTINUOUS_ACQ_END,   // Waiting for camera readout at the end of continuous acquisition
@@ -98,27 +101,22 @@ static struct SystemSettings
     STATUS status;
     bool up;
     int32_t fluidics_delay_us;
-    LaserShutter L;
     uint32_t interframe_time_us;
     uint32_t strobe_duration_us;
     uint32_t ALEX_cycle_delay_us;
+    bool ALEX_enabled;
     uint8_t ALEX_current_channel;
     uint8_t ALEX_last_channel;
     uint32_t n_frames;
     uint32_t n_acquired_frames; // Total number of acquired frames (pulses to camera)
-} sys{
-    STATUS::IDLE,              // STATUS status;
-    true,                      // bool up;
-    0,                         // int32_t fluidics_delay_us;
-    {SHUTTERS_MASK, 0, false}, // LaserShutter L;
-    100000,                    // uint32_t interframe_time_us;
-    25000,                     // uint32_t strobe_duration_us;
-    0,                         // uint32_t ALEX_cycle_delay_us;
-    0,                         // uint8_t ALEX_current_channel;
-    0,                         // uint8_t ALEX_last_channel;
-    0,                         // uint32_t n_frames;
-    0,                         // uint32_t n_acquired_frames;
-};
+    uint8_t shutter_active;     // Actual bit pattern for the IO port, see `decode_shutter_bits()`
+    uint8_t shutter_idle;
+
+    // Default values
+    SystemSettings() : shutter_active(SHUTTERS_MASK),
+                       interframe_time_us(100000),
+                       strobe_duration_us(25000) {}
+} sys;
 
 typedef struct
 {
