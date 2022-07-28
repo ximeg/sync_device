@@ -14,15 +14,15 @@ HELPER FUNCTIONS
 ****************/
 
 // Serial port shortcuts
-#define helper static inline void
-helper send_ok() { Serial.print("OK\n"); }
-helper send_err() { Serial.print("ERR\n"); }
-helper send_err(const char *msg)
+void send_ok() { Serial.print("OK\n"); }
+void send_err() { Serial.print("ERR\n"); }
+void send_err(const char *msg)
 {
   Serial.print(msg);
   Serial.print("\n");
 }
 
+// Bit manipulation
 uint8_t count_bits(uint8_t v)
 {
   unsigned int c; // c accumulates the total bits set in v
@@ -34,17 +34,6 @@ uint8_t count_bits(uint8_t v)
   return c;
 }
 
-helper camera_pin_up() { CAMERA_PORT |= bit(CAMERA_PIN); }
-helper camera_pin_down() { CAMERA_PORT &= ~bit(CAMERA_PIN); }
-
-helper fluidic_pin_up() { FLUIDIC_PORT |= bit(FLUIDIC_PIN); }
-helper fluidic_pin_down() { FLUIDIC_PORT &= ~bit(FLUIDIC_PIN); }
-
-helper write_shutters(uint8_t value)
-{
-  SHUTTERS_PORT = (SHUTTERS_PORT & ~SHUTTERS_MASK) | value;
-}
-
 uint8_t decode_shutter_bits(uint8_t rx_bits)
 {
   uint8_t cy2_bit = (rx_bits & 1) > 0;
@@ -54,10 +43,22 @@ uint8_t decode_shutter_bits(uint8_t rx_bits)
   return (cy2_bit << CY2_PIN) | (cy3_bit << CY3_PIN) | (cy5_bit << CY5_PIN) | (cy7_bit << CY7_PIN);
 }
 
+// TTL functions
+void camera_pin_up() { CAMERA_PORT |= bit(CAMERA_PIN); }
+void camera_pin_down() { CAMERA_PORT &= ~bit(CAMERA_PIN); }
+
+void fluidic_pin_up() { FLUIDIC_PORT |= bit(FLUIDIC_PIN); }
+void fluidic_pin_down() { FLUIDIC_PORT &= ~bit(FLUIDIC_PIN); }
+
+void write_shutters(uint8_t value)
+{
+  SHUTTERS_PORT = (SHUTTERS_PORT & ~SHUTTERS_MASK) | value;
+}
+
 /************
 SYSTEM STARTUP
 ************/
-helper setup_output_ports()
+void setup_output_ports()
 {
   FLUIDIC_DDR |= bit(FLUIDIC_PIN);
   FLUIDIC_PORT &= ~bit(FLUIDIC_PIN);
@@ -72,7 +73,7 @@ helper setup_output_ports()
 }
 
 // Setup serial port
-helper setup_UART()
+void setup_UART()
 {
   Serial.begin(2000000);
   Serial.setTimeout(10); // ms
@@ -152,8 +153,8 @@ void parse_UART_command()
         break;
       }
     }
-    sys.shutter_active = data.Shutter.active;
-    sys.shutter_idle = data.Shutter.idle;
+    sys.shutter_active = decode_shutter_bits(data.Shutter.active);
+    sys.shutter_idle = decode_shutter_bits(data.Shutter.idle);
     sys.ALEX_enabled = data.Shutter.ALEX;
 
     if (sys.status == STATUS::IDLE)
