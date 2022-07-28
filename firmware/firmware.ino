@@ -58,13 +58,54 @@ void write_shutters(uint8_t value)
 // Time functions
 long elapsed_us() // returns number of microseconds elapsed since last call
 {
-  int32_t delta = micros() - t0;
+  static uint32_t prev_time;
+  int32_t delta = micros() - prev_time;
   if (delta < 0) // Check whether a clock overflow happened
   {
     delta += UINT32_MAX - 1;
   }
-  t0 += delta;
+  prev_time = micros();
   return delta;
+}
+
+// Acquisition logic
+
+void start_continuous_acq(uint32_t n_frames)
+{
+  sys.n_frames = n_frames;
+  sys.n_acquired_frames = 0;
+
+  // calculate time points for TTL triggers
+  next_event.camera_TTL.up = micros();
+  next_event.camera_TTL.down = next_event.camera_TTL.up + max(10, (sys.interframe_time_us >> 4));
+
+  // change system state
+  sys.status = STATUS::CONTINUOUS_ACQ_START;
+}
+
+void check_camera_events()
+{
+  switch (sys.status)
+  {
+  case STATUS::IDLE:
+    break;
+
+  case STATUS::CONTINUOUS_ACQ_START:
+    if (t0 > next_event.camera_TTL.up)
+    {
+      camera_pin_up();
+      next_event.camera_TTL.up += sys.interframe_time_us;
+    }
+    if (t0 > next_event.camera_TTL.down)
+    {
+      camera_pin_down();
+      next_event.camera_TTL.down += sys.interframe_time_us;
+    }
+    break;
+
+  default:
+    break;
+  }
 }
 
 /*************
@@ -112,6 +153,7 @@ void setup()
   setup_UART();
 
   t0 = micros();
+  elapsed_us();
 }
 
 /************
@@ -119,13 +161,17 @@ EVENT HANDLING
 ************/
 void loop()
 {
-  check_UART();
+  // Save current time
+  t0 = micros();
+  check_UART_events();
+
+  check_camera_events();
 
   // flip event loop pin - allows to monitor how fast loop() runs
   EVENT_LOOP_PIN_FLIP = bit(EVENT_LOOP_PIN);
 }
 
-void check_UART()
+void check_UART_events()
 {
   if (Serial.available())
   {
@@ -187,22 +233,12 @@ void parse_UART_command()
       send_err("Interframe time is too short");
       break;
     }
-    if (sys.strobe_duration_us + 12000 > data.interframe_time_us)
-    {
-      send_err("Not enough time to readout the sensor. Check strobe and interframe timings");
-      break;
-    }
     sys.interframe_time_us = data.interframe_time_us;
     send_ok();
     break;
 
   /* Set strobe flash duration */
   case 'E':
-    if (data.strobe_duration_us + 12000 > sys.interframe_time_us)
-    {
-      send_err("Not enough time to readout the sensor. Check strobe and interframe timings");
-      break;
-    }
     sys.strobe_duration_us = data.strobe_duration_us;
     send_ok();
     break;
@@ -215,11 +251,17 @@ void parse_UART_command()
 
   /* Start continuous image acquisition */
   case 'C':
-    /* code */
+    start_continuous_acq(data.n_frames);
+    send_ok();
     break;
 
   /* Start stroboscopic image acquisition */
   case 'S':
+    if (sys.strobe_duration_us + 12000 > sys.interframe_time_us)
+    {
+      send_err("Not enough time to readout the sensor. Check strobe and interframe timings");
+      break;
+    }
     /* code */
     break;
 
@@ -230,6 +272,7 @@ void parse_UART_command()
     break;
 
   default:
+    sys.status = STATUS::IDLE;
     break;
   }
 }
