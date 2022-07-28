@@ -84,7 +84,8 @@ union Data
 SYSTEM STATUS VARIABLES
 ***************************************/
 
-bool system_is_up = false;
+// System clock
+static uint32_t t0; // current time
 
 // System status
 enum STATUS

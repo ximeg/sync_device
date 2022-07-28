@@ -55,9 +55,21 @@ void write_shutters(uint8_t value)
   SHUTTERS_PORT = (SHUTTERS_PORT & ~SHUTTERS_MASK) | value;
 }
 
-/************
+// Time functions
+long elapsed_us() // returns number of microseconds elapsed since last call
+{
+  int32_t delta = micros() - t0;
+  if (delta < 0) // Check whether a clock overflow happened
+  {
+    delta += UINT32_MAX - 1;
+  }
+  t0 += delta;
+  return delta;
+}
+
+/*************
 SYSTEM STARTUP
-************/
+*************/
 void setup_output_ports()
 {
   FLUIDIC_DDR |= bit(FLUIDIC_PIN);
@@ -98,6 +110,8 @@ void setup()
 {
   setup_output_ports();
   setup_UART();
+
+  t0 = micros();
 }
 
 /************
