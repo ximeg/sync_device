@@ -83,16 +83,17 @@ SYSTEM STATUS VARIABLES
 
 bool system_is_up = false;
 
+// System status
 enum STATUS
 {
-    IDLE = 0,
-    CONTINUOUS_FRAME = 1,
-    ALEX_FRAME = 2,
-    STROBO_FRAME = 3,
-    SKIP_FRAME = 4,
+    IDLE,                 // Doing nothing, waiting for commands
+    CONTINUOUS_ACQ_START, // First frame that will be discarded
+    CONTINUOUS_ACQ,       // Running continuous acquisition
+    CONTINUOUS_ACQ_END,   // Waiting for camera readout at the end of continuous acquisition
+    STROBO_ACQ,           // Running stroboscopic acquisition (includes ALEX and timelapse)
 };
 
-struct SystemStatus
+static struct SystemSettings
 {
     STATUS status;
     bool up;
@@ -101,29 +102,35 @@ struct SystemStatus
     uint32_t interframe_time_us;
     uint32_t strobe_duration_us;
     uint32_t ALEX_cycle_delay_us;
+    uint8_t ALEX_current_channel;
+    uint8_t ALEX_last_channel;
     uint32_t n_frames;
-} sys{STATUS::IDLE,
-      true,
-      0,
-      {SHUTTERS_MASK, 0, false}};
-
-volatile uint8_t system_status = STATUS::IDLE;
-volatile uint16_t n_acquired_frames = 0; // Total number of acquired frames (pulses to camera)
-volatile uint16_t skipped_count = 0;     // Number of already skipped frames during timelapse
-
-volatile uint8_t alex_laser_i = 0;    // Current ALEX channel
-volatile uint8_t alex_last_laser = 0; // Index of the last ALEX channel
-
-////////////// NEW STUFF /////////////////
+    uint32_t n_acquired_frames; // Total number of acquired frames (pulses to camera)
+} sys{
+    STATUS::IDLE,              // STATUS status;
+    true,                      // bool up;
+    0,                         // int32_t fluidics_delay_us;
+    {SHUTTERS_MASK, 0, false}, // LaserShutter L;
+    100000,                    // uint32_t interframe_time_us;
+    25000,                     // uint32_t strobe_duration_us;
+    0,                         // uint32_t ALEX_cycle_delay_us;
+    0,                         // uint8_t ALEX_current_channel;
+    0,                         // uint8_t ALEX_last_channel;
+    0,                         // uint32_t n_frames;
+    0,                         // uint32_t n_acquired_frames;
+};
 
 typedef struct
 {
-    uint32_t up;
-    uint32_t down;
+    uint32_t up;   // timestamp of TTL raising edge, in microseconds
+    uint32_t down; // timestamp of TTL falling edge, in microseconds
 } Trigger;
-struct
+
+// This structure holds timestamps of the events. Once we reach the timepoint
+// of the event, it should be triggered.
+static struct
 {
-    Trigger camera_trigger;
-    Trigger fluidics_trigger;
-    Trigger shutter_trigger;
+    Trigger camera_TTL;
+    Trigger fluidics_TTL;
+    Trigger shutter_TTL;
 } next_event;
