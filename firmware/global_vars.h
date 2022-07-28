@@ -42,31 +42,14 @@ typedef struct
     uint8_t value;
 } Register;
 
-// Fluidics delay
-typedef struct g_fluidics
-{
-    uint16_t fluidics_delay_ms;
-} Fluidics;
-Fluidics g_fluidics{0};
-
 // Laser shutter states - in active and idle mode
 typedef struct
 {
     uint8_t active;
     uint8_t idle;
     bool ALEX;
-} Shutter;
-Shutter g_shutter{SHUTTERS_MASK, 0, false};
-
-// Timer 1 configuration for generation of pulsetrains
-typedef struct
-{
-    uint16_t exp_time_n64us;        // laser exposure, in timer counts
-    uint16_t n_frames;              // number of frames
-    uint16_t interframe_time_n64us; // interframe delay for strobe mode, in timer counts
-    uint16_t timelapse_delay_s;     // timelapse delay, in seconds
-} Timer1;
-Timer1 g_timer1{600, 7, 160, 2};
+} LaserShutter;
+LaserShutter g_shutter{SHUTTERS_MASK, 0, false};
 
 // Data packet for serial communication
 union Data
@@ -75,14 +58,15 @@ union Data
     {
         uint8_t cmd;
 
-        // All members below share the same 9 bytes of memory
-        // Each represents arguments of the command after which it is named
+        // All members below share the same chunk of memory
         union
         {
-            Register R; // register access (R/W)
-            Fluidics F; // fluidics control
-            Shutter L;  // laser shutter control and ALEX
-            Timer1 T;   // timer1 configuration
+            Register R;                  // register access (R/W)
+            int32_t fluidics_delay_us;   // fluidics injection delay. If negative, happens before imaging
+            LaserShutter L;              // laser shutter control and ALEX on/off
+            uint32_t interframe_time_us; // time between frames in any imaging mode
+            uint32_t strobe_duration_us; // duration of laser flash in stroboscopic mode
+            uint32_t n_frames;           // number of frames to acquire
         };
     };
 
@@ -114,3 +98,17 @@ volatile uint16_t skipped_count = 0;     // Number of already skipped frames dur
 
 volatile uint8_t alex_laser_i = 0;    // Current ALEX channel
 volatile uint8_t alex_last_laser = 0; // Index of the last ALEX channel
+
+////////////// NEW STUFF /////////////////
+
+typedef struct
+{
+    uint32_t up;
+    uint32_t down;
+} Trigger;
+struct
+{
+    Trigger camera_trigger;
+    Trigger fluidics_trigger;
+    Trigger shutter_trigger;
+} next_event;
