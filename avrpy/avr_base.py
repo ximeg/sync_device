@@ -17,7 +17,7 @@ def c16(value):
 
 def c8(value):
     assert value < 2**8, "value exceeds 8 bit"
-    return c_uint16(value)
+    return c_uint8(value)
 
 
 class SyncDeviceError(ValueError):
@@ -64,7 +64,7 @@ def _compare_versions(v1, v2):
     }
 
 
-def pad(data: bytearray, length=9):
+def pad(data: bytearray, length=5):
     return data + bytearray([0] * (length - len(data)))
 
 
