@@ -1,5 +1,4 @@
 #define VERSION "0.3.0\n"
-
 #include <stdint.h>
 #include <Arduino.h>
 
@@ -7,139 +6,66 @@
 #include <avr/iom328.h>
 #endif
 
-#include "global_vars.h"
+#pragma pack(push) /* push current alignment to stack */
+#pragma pack(1)    /* set alignment to 1 byte boundary */
 
-/***************
-HELPER FUNCTIONS
-****************/
-
-// Serial port shortcuts
-void send_ok() { Serial.print("OK\n"); }
-void send_err() { Serial.print("ERR\n"); }
-void send_err(const char *msg)
+// Address and value of register for read/write operations
+typedef struct
 {
-  Serial.print(msg);
-  Serial.print("\n");
-}
+  uint8_t addr;
+  uint8_t value;
+} Register;
 
-// Bit manipulation
-uint8_t count_bits(uint8_t v)
+// Laser shutter states - in active and idle mode
+typedef struct
 {
-  unsigned int c; // c accumulates the total bits set in v
+  uint8_t active;
+  uint8_t idle;
+  bool ALEX;
+} LaserShutter;
 
-  for (c = 0; v; v >>= 1)
+// Data packet for serial communication
+union Data
+{
+  struct
   {
-    c += v & 1;
-  }
-  return c;
-}
+    uint8_t cmd;
 
-uint8_t decode_shutter_bits(uint8_t rx_bits)
-{
-  uint8_t cy2_bit = (rx_bits & 1) > 0;
-  uint8_t cy3_bit = (rx_bits & 2) > 0;
-  uint8_t cy5_bit = (rx_bits & 4) > 0;
-  uint8_t cy7_bit = (rx_bits & 8) > 0;
-  return (cy2_bit << CY2_PIN) | (cy3_bit << CY3_PIN) | (cy5_bit << CY5_PIN) | (cy7_bit << CY7_PIN);
-}
-
-// TTL functions
-void camera_pin_up() { CAMERA_PORT |= bit(CAMERA_PIN); }
-void camera_pin_down() { CAMERA_PORT &= ~bit(CAMERA_PIN); }
-
-void fluidic_pin_up() { FLUIDIC_PORT |= bit(FLUIDIC_PIN); }
-void fluidic_pin_down() { FLUIDIC_PORT &= ~bit(FLUIDIC_PIN); }
-
-void write_shutters(uint8_t value)
-{
-  SHUTTERS_PORT = (SHUTTERS_PORT & ~SHUTTERS_MASK) | value;
-}
-
-// Time functions
-
-// returns number of microseconds elapsed since t0
-long elapsed_us()
-{
-  int32_t delta = micros() - t0;
-  if (delta < 0) // Check whether a clock overflow happened
-  {
-    delta += UINT32_MAX - 1;
-  }
-  return delta;
-}
-
-// Acquisition logic
-
-void start_continuous_acq(uint32_t n_frames)
-{
-  sys.n_frames = n_frames;
-  sys.n_acquired_frames = 0;
-
-  // calculate time points for TTL triggers
-  events.camera_TTL.up = {0, false};
-  events.camera_TTL.down = {sys.interframe_time_us >> 4, false};
-
-  // change system state
-  sys.status = STATUS::CONTINUOUS_ACQ_START;
-  t0 = micros();
-}
-
-// Check whether it's time for a given event. Return true only once
-bool singular_event(Event &e)
-{
-  if (!e.occured)
-  {
-    if (elapsed_us() > e.ts)
+    // All members below share the same chunk of memory
+    union
     {
-      e.occured = true;
-      return true;
-    }
-  }
-  return false;
-}
+      Register R;                   // register access (R/W)
+      int32_t fluidics_delay_us;    // fluidics injection delay. If negative, happens before imaging
+      LaserShutter Shutter;         // laser shutter control and ALEX on/off
+      uint32_t interframe_time_us;  // time between frames in any imaging mode
+      uint32_t strobe_duration_us;  // duration of laser flash in stroboscopic mode
+      uint32_t ALEX_cycle_delay_us; // duration of delay between ALEX cycles
+      uint32_t n_frames;            // number of frames to acquire
+    };
+  };
 
-void is_end_of_frame()
+  uint8_t bytes[9];
+} data;
+
+#pragma pack(pop) /* restore original alignment from stack */
+
+#define MEM_IO_8bit(mem_addr) (*(volatile uint8_t *)(uintptr_t)(mem_addr))
+
+typedef struct
 {
-  if (elapsed_us() > sys.interframe_time_us)
-  {
-    t0 = micros();
-    events.camera_TTL.up.occured = false;
-    events.camera_TTL.down.occured = false;
-  }
-}
+  uint8_t bits;
+  uint8_t bitshift; // << #ticks to covert them to microseconds
+} Prescaler;
 
-void check_camera_events()
-{
-  if (sys.status == STATUS::CONTINUOUS_ACQ_START)
-  {
-    if (singular_event(events.camera_TTL.up))
-    {
-      camera_pin_up();
-    }
-    if (singular_event(events.camera_TTL.down))
-    {
-      camera_pin_down();
-    }
-  }
-  is_end_of_frame();
-}
+const Prescaler prescaler64 = {bit(CS10) | bit(CS11), 2};
+const Prescaler prescaler256 = {bit(CS12), 4};
+const Prescaler prescaler1024 = {bit(CS10) | bit(CS12), 6};
 
-/*************
-SYSTEM STARTUP
-*************/
-void setup_output_ports()
-{
-  FLUIDIC_DDR |= bit(FLUIDIC_PIN);
-  FLUIDIC_PORT &= ~bit(FLUIDIC_PIN);
+#define prescaler prescaler64
 
-  CAMERA_DDR |= bit(CAMERA_PIN);
-  CAMERA_PORT &= ~bit(CAMERA_PIN);
-
-  SHUTTERS_DDR |= SHUTTERS_MASK;
-  SHUTTERS_PORT &= ~SHUTTERS_MASK;
-
-  EVENT_LOOP_DDR |= bit(EVENT_LOOP_PIN);
-}
+static volatile uint32_t frame_duration_us = 2000; // in microseconds
+static volatile uint32_t event_A_us = 1000;        // in microseconds
+static volatile uint32_t event_B_us = 500;         // in microseconds
 
 // Setup serial port
 void setup_UART()
@@ -151,43 +77,10 @@ void setup_UART()
   while (!Serial)
   {
   }
-  if (!sys.up)
-  {
-    Serial.flush();
-    // Notify the host that we are ready
-    Serial.print("Arduino is ready. Firmware version: ");
-    Serial.print(VERSION);
-    sys.up = true;
-  }
-}
-
-// ------------------------------------------
-// PROGRAM STARTING POINT
-void setup()
-{
-  setup_output_ports();
-  setup_UART();
-
-  elapsed_us();
-}
-
-/************
-EVENT HANDLING
-************/
-void loop()
-{
-  if (sys.status != STATUS::IDLE)
-  {
-    check_camera_events();
-    // check fluidics
-    // check shutters
-  }
-
-  // Save current time
-  check_UART_events();
-
-  // flip event loop pin - allows to monitor how fast loop() runs
-  EVENT_LOOP_PIN_FLIP = bit(EVENT_LOOP_PIN);
+  Serial.flush();
+  // Notify the host that we are ready
+  Serial.print("Arduino is ready. Firmware version: ");
+  Serial.print(VERSION);
 }
 
 void check_UART_events()
@@ -199,6 +92,59 @@ void check_UART_events()
       parse_UART_command();
     }
   }
+}
+
+typedef struct
+{
+  uint16_t cycle;
+  uint16_t n_cycles;
+} ISRcounter;
+
+ISRcounter t1over;
+ISRcounter t1matchA;
+ISRcounter t1matchB;
+
+void start_timer1()
+{
+  // We have three interrupts. Each of them must trigger a corresponding function
+  // at most ONCE. However, the interrupts might occur more than once.
+
+  // First, convert all intervals from microseconds to timer counts
+  uint32_t frame_duration_cts = frame_duration_us >> prescaler.bitshift;
+  uint32_t event_A_cts = event_A_us >> prescaler.bitshift;
+  uint32_t event_B_cts = event_B_us >> prescaler.bitshift;
+
+  t1over.n_cycles = 1;
+  // We divide required #ticks in half until if fits into 16bit
+  while (frame_duration_cts >= UINT16_MAX)
+  {
+    frame_duration_cts >>= 1; // divide in half
+    t1over.n_cycles <<= 1;    // double
+  }
+
+  // Now let's find how many cycles we need for events A and B
+  t1matchA.n_cycles = event_A_cts / frame_duration_cts;
+  t1matchB.n_cycles = event_B_cts / frame_duration_cts;
+
+  // Initialize the cycle counters
+  t1over.cycle = 0;
+  t1matchA.cycle = 0;
+  t1matchB.cycle = 0;
+
+  // Set the timer registers
+  ICR1 = (frame_duration_cts > 0) ? frame_duration_cts - 1 : 0;
+  OCR1A = event_A_cts % frame_duration_cts;
+  OCR1B = event_B_cts % frame_duration_cts;
+  OCR1A = (OCR1A > 0) ? OCR1A - 1 : 0;
+  OCR1B = (OCR1B > 0) ? OCR1B - 1 : 0;
+
+  // Reset and configure the timer
+  TCNT1 = ICR1 - 2;
+  TCCR1A = bit(WGM11);
+  TCCR1B = bit(WGM12) | bit(WGM13) | prescaler.bits;
+
+  // Enable interrupts for overflow, match A, and match B
+  TIMSK1 = bit(TOIE1) | bit(OCIE1A) | bit(OCIE1B);
 }
 
 void parse_UART_command()
@@ -215,83 +161,80 @@ void parse_UART_command()
     MEM_IO_8bit(data.R.addr) = data.R.value;
     break;
 
-  /* Set fluidics delay */
-  case 'F':
-    sys.fluidics_delay_us = data.fluidics_delay_us;
-    send_ok();
+  case 'T':
+    frame_duration_us = data.interframe_time_us;
+    start_timer1();
     break;
 
-  /* Set laser shutter and ALEX states */
-  case 'L':
-    if (data.Shutter.ALEX)
-    {
-      if (count_bits(data.Shutter.active) < 2)
-      {
-        // Less than two spectral channels - can't do ALEX!
-        send_err("ALEX error: not enough channels");
-        break;
-      }
-    }
-    sys.shutter_active = decode_shutter_bits(data.Shutter.active);
-    sys.shutter_idle = decode_shutter_bits(data.Shutter.idle);
-    sys.ALEX_enabled = data.Shutter.ALEX;
-
-    if (sys.status == STATUS::IDLE)
-      write_shutters(sys.shutter_idle);
-
-    if (sys.status == STATUS::CONTINUOUS_ACQ)
-      write_shutters(sys.shutter_active);
-
-    send_ok();
-    break;
-
-  /* Set interframe time delay */
-  case 'I':
-    if (data.interframe_time_us < 50)
-    {
-      send_err("Interframe time is too short");
-      break;
-    }
-    sys.interframe_time_us = data.interframe_time_us;
-    send_ok();
-    break;
-
-  /* Set strobe flash duration */
-  case 'E':
-    sys.strobe_duration_us = data.strobe_duration_us;
-    send_ok();
-    break;
-
-  /* Set ALEX cycle delay (for timelapse with ALEX) */
   case 'A':
-    sys.ALEX_cycle_delay_us = data.ALEX_cycle_delay_us;
-    send_ok();
+    event_A_us = data.interframe_time_us;
+    start_timer1();
     break;
 
-  /* Start continuous image acquisition */
-  case 'C':
-    start_continuous_acq(data.n_frames);
-    send_ok();
-    break;
-
-  /* Start stroboscopic image acquisition */
-  case 'S':
-    if (sys.strobe_duration_us + 12000 > sys.interframe_time_us)
-    {
-      send_err("Not enough time to readout the sensor. Check strobe and interframe timings");
-      break;
-    }
-    /* code */
-    break;
-
-  /* Stop image acquisition */
-  case 'Q':
-    /* code */
-    send_ok();
-    break;
-
-  default:
-    sys.status = STATUS::IDLE;
+  case 'B':
+    event_B_us = data.interframe_time_us;
+    start_timer1();
     break;
   }
+}
+
+// ----------------------------------------------------
+void OVF_interrupt_handler()
+{
+  PINC = bit(PINC4);
+}
+void MatchA_interrupt_handler()
+{
+  PINC = bit(PINC3);
+}
+void MatchB_interrupt_handler()
+{
+  PINC = bit(PINC2);
+}
+// ----------------------------------------------------
+
+ISR(TIMER1_OVF_vect)
+{
+  PINC = bit(PINC5);
+
+  // Timer to call interrupt handler
+  if (++t1over.cycle == t1over.n_cycles)
+  {
+    OVF_interrupt_handler();
+    t1over.cycle = 0;
+    t1matchA.cycle = 0;
+    t1matchB.cycle = 0;
+  }
+}
+
+ISR(TIMER1_COMPA_vect)
+{
+  // Timer to call interrupt handler
+  if (t1matchA.cycle++ == t1matchA.n_cycles)
+  {
+    MatchA_interrupt_handler();
+  }
+}
+
+ISR(TIMER1_COMPB_vect)
+{
+  // Timer to call interrupt handler
+  if (t1matchB.cycle++ == t1matchB.n_cycles)
+  {
+    MatchB_interrupt_handler();
+  }
+}
+
+void setup()
+{
+  DDRC = bit(DDC5) | bit(DDC4) | bit(DDC3) | bit(DDC2);
+
+  start_timer1();
+
+  setup_UART();
+}
+
+void loop()
+{
+  check_UART_events();
 }
