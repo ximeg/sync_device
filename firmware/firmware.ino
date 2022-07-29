@@ -56,15 +56,15 @@ void write_shutters(uint8_t value)
 }
 
 // Time functions
-long elapsed_us() // returns number of microseconds elapsed since last call
+
+// returns number of microseconds elapsed since t0
+long elapsed_us()
 {
-  static uint32_t prev_time;
-  int32_t delta = micros() - prev_time;
+  int32_t delta = micros() - t0;
   if (delta < 0) // Check whether a clock overflow happened
   {
     delta += UINT32_MAX - 1;
   }
-  prev_time = micros();
   return delta;
 }
 
@@ -76,36 +76,52 @@ void start_continuous_acq(uint32_t n_frames)
   sys.n_acquired_frames = 0;
 
   // calculate time points for TTL triggers
-  next_event.camera_TTL.up = micros();
-  next_event.camera_TTL.down = next_event.camera_TTL.up + max(10, (sys.interframe_time_us >> 4));
+  events.camera_TTL.up = {0, false};
+  events.camera_TTL.down = {sys.interframe_time_us >> 4, false};
 
   // change system state
   sys.status = STATUS::CONTINUOUS_ACQ_START;
+  t0 = micros();
+}
+
+// Check whether it's time for a given event. Return true only once
+bool singular_event(Event &e)
+{
+  if (!e.occured)
+  {
+    if (elapsed_us() > e.ts)
+    {
+      e.occured = true;
+      return true;
+    }
+  }
+  return false;
+}
+
+void is_end_of_frame()
+{
+  if (elapsed_us() > sys.interframe_time_us)
+  {
+    t0 = micros();
+    events.camera_TTL.up.occured = false;
+    events.camera_TTL.down.occured = false;
+  }
 }
 
 void check_camera_events()
 {
-  switch (sys.status)
+  if (sys.status == STATUS::CONTINUOUS_ACQ_START)
   {
-  case STATUS::IDLE:
-    break;
-
-  case STATUS::CONTINUOUS_ACQ_START:
-    if (t0 > next_event.camera_TTL.up)
+    if (singular_event(events.camera_TTL.up))
     {
       camera_pin_up();
-      next_event.camera_TTL.up += sys.interframe_time_us;
     }
-    if (t0 > next_event.camera_TTL.down)
+    if (singular_event(events.camera_TTL.down))
     {
       camera_pin_down();
-      next_event.camera_TTL.down += sys.interframe_time_us;
     }
-    break;
-
-  default:
-    break;
   }
+  is_end_of_frame();
 }
 
 /*************
@@ -152,7 +168,6 @@ void setup()
   setup_output_ports();
   setup_UART();
 
-  t0 = micros();
   elapsed_us();
 }
 
@@ -161,11 +176,15 @@ EVENT HANDLING
 ************/
 void loop()
 {
-  // Save current time
-  t0 = micros();
-  check_UART_events();
+  if (sys.status != STATUS::IDLE)
+  {
+    check_camera_events();
+    // check fluidics
+    // check shutters
+  }
 
-  check_camera_events();
+  // Save current time
+  check_UART_events();
 
   // flip event loop pin - allows to monitor how fast loop() runs
   EVENT_LOOP_PIN_FLIP = bit(EVENT_LOOP_PIN);

@@ -85,7 +85,8 @@ SYSTEM STATUS VARIABLES
 ***************************************/
 
 // System clock
-static uint32_t t0; // current time
+static uint32_t frame_time_us; // time elapsed since the beginning of current frame
+static uint32_t t0;            // current time
 
 // System status
 enum STATUS
@@ -121,8 +122,14 @@ static struct SystemSettings
 
 typedef struct
 {
-    uint32_t up;   // timestamp of TTL raising edge, in microseconds
-    uint32_t down; // timestamp of TTL falling edge, in microseconds
+    uint32_t ts; // timestamp
+    bool occured;
+} Event;
+
+typedef struct
+{
+    Event up;   // timestamp of TTL raising edge, in microseconds
+    Event down; // timestamp of TTL falling edge, in microseconds
 } Trigger;
 
 // This structure holds timestamps of the events. Once we reach the timepoint
@@ -132,4 +139,4 @@ static struct
     Trigger camera_TTL;
     Trigger fluidics_TTL;
     Trigger shutter_TTL;
-} next_event;
+} events;
