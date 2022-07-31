@@ -1,4 +1,3 @@
-#define VERSION "0.3.0\n"
 #include <stdint.h>
 #include <Arduino.h>
 
@@ -6,9 +5,55 @@
 #include <avr/iom328.h>
 #endif
 
-#include "communication.h"
+#include "sys_globals.h" // system time, state, settings, (pin assignments?)
+#include "utils.h"       // convert bits, count bits, etc open/close shutters, send triggers.
+#include "uart.h"        // setup_uart, parse_command, data definition
+#include "triggers.h"    // port config, open/close shutters, send triggers.
+#include "events.h"      // event loop - handling of event processing
 
-#include "helpers.h"
+void setup()
+{
+  setup_IO_ports();
+  setup_UART();
+}
+
+void loop()
+{
+  check_UART_inbox();
+
+  // flip event loop pin - allows to monitor how fast loop() runs
+  EVENT_LOOP_PIN_FLIP = bit(EVENT_LOOP_PIN);
+}
+
+/*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #define MEM_IO_8bit(mem_addr) (*(volatile uint8_t *)(uintptr_t)(mem_addr))
 
@@ -112,31 +157,31 @@ void parse_UART_command()
 {
   switch (data.cmd)
   {
-  /* Read register */
-  case 'R':
-    Serial.write(MEM_IO_8bit(data.R.addr));
-    break;
+  // Read register
+case 'R':
+Serial.write(MEM_IO_8bit(data.R.addr));
+break;
 
-  /* Write register */
-  case 'W':
-    MEM_IO_8bit(data.R.addr) = data.R.value;
-    break;
+// Write register
+case 'W':
+MEM_IO_8bit(data.R.addr) = data.R.value;
+break;
 
-  case 'T':
-    frame_duration_us = data.interframe_time_us;
-    start_timer1();
-    break;
+case 'T':
+frame_duration_us = data.interframe_time_us;
+start_timer1();
+break;
 
-  case 'A':
-    event_A_us = data.interframe_time_us;
-    start_timer1();
-    break;
+case 'A':
+event_A_us = data.interframe_time_us;
+start_timer1();
+break;
 
-  case 'B':
-    event_B_us = data.interframe_time_us;
-    start_timer1();
-    break;
-  }
+case 'B':
+event_B_us = data.interframe_time_us;
+start_timer1();
+break;
+}
 }
 
 // ----------------------------------------------------
@@ -199,3 +244,4 @@ void loop()
 {
   check_UART_events();
 }
+*/
