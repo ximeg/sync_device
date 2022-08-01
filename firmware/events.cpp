@@ -35,7 +35,7 @@ void Event::schedule(uint64_t event_timestamp_us, uint64_t repeat_every_us, uint
     this->repeat_every_us = repeat_every_us;
 }
 
-void Event::check_event()
+void Event::poll()
 {
     if (!event_ended)
     {

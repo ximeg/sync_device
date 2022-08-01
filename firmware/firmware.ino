@@ -23,10 +23,10 @@ void loop()
   if (sys.status != STATUS::IDLE)
   {
     // Fluidics trigger
-    event_fluidics_TTL_up.check_event();
-    event_fluidics_TTL_dn.check_event();
+    event_fluidics_TTL_up.poll();
+    event_fluidics_TTL_dn.poll();
 
-    // event_start_imaging.check_event();
+    // event_start_imaging.poll();
   }
 
   // flip event loop pin - allows to monitor how fast `loop()` runs
