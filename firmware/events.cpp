@@ -71,7 +71,7 @@ Prescaler::Prescaler(uint16_t factor)
     }
 };
 
-Prescaler presc = Prescaler(1024);
+Prescaler prescaler = Prescaler(1024);
 
 Event::Event(uint64_t event_timestamp_us, void (*event_handler)(), uint64_t repeat_every_us, uint32_t N_times)
 {
@@ -101,7 +101,7 @@ void Event::poll()
     if (!event_ended)
     {
         // maybe cache sys.time + TCNT1 cts to speedup computing? Check it with osci
-        if (sys.time + presc.cts2us(TCNT1) > event_timestamp_us)
+        if (sys.time + prescaler.cts2us(TCNT1) > event_timestamp_us)
         {
             event_handler();
 
@@ -131,51 +131,72 @@ ISRcounter t1ovflow;
 ISRcounter t1matchA;
 ISRcounter t1matchB;
 
-// TODO: rename this?? Timer1 should always be running for sys.time. However, we need to keep in mind
-// that some interrupts will be disabled to behave in different ways depending on sys.status
-
+// Configure and start timer 1 in the default mode. If system is IDLE, it is
+// responsible only for the system time.
 void setup_timer1()
+{
+    // WGM mode 14 (fast PWM with ICR1 max)
+    TCCR1A = bit(WGM11);
+    TCCR1B = bit(WGM12) | bit(WGM13) | prescaler.TCCR1B_bits;
+
+    ICR1 = UINT16_MAX;
+
+    // Enable interrupts for overflow, match A, and match B
+    TIMSK1 = bit(TOIE1) | bit(OCIE1A) | bit(OCIE1B);
+}
+
+// Configure timer1 to run synchronously with camera and laser shutters and
+// trigger them with overflow and match interrupts.
+void start_acquisition()
 {
     // We have three interrupts. Each of them must trigger a corresponding function
     // at most ONCE. However, the interrupts might occur more than once if the
     // interframe period is longer than 65k timer counts.
 
     // First, convert all intervals from microseconds to timer counts
-    uint32_t frame_duration_cts = presc.us2cts(sys.interframe_time_us);
-    uint32_t event_A_cts = presc.us2cts(event_A_us);
-    uint32_t event_B_cts = presc.us2cts(event_B_us);
+    uint32_t frame_length_cts = prescaler.us2cts(sys.interframe_time_us);
+    uint32_t frame_matchA_cts = prescaler.us2cts(event_A_us); // TOOD: calculate event_A/B_us depending on imaging mode
+    uint32_t frame_matchB_cts = prescaler.us2cts(event_B_us); // TOOD: calculate event_A/B_us depending on imaging mode
 
     t1ovflow.n_cycles = 1;
     // We divide required #ticks in half until if fits into 16bit
-    while (frame_duration_cts >= UINT16_MAX)
+    while (frame_length_cts >= UINT16_MAX)
     {
-        frame_duration_cts >>= 1; // divide in half
-        t1ovflow.n_cycles <<= 1;  // double
+        frame_length_cts >>= 1;  // divide in half
+        t1ovflow.n_cycles <<= 1; // double number of cycles
     }
 
     // Now let's find how many cycles we need for events A and B
-    t1matchA.n_cycles = event_A_cts / frame_duration_cts;
-    t1matchB.n_cycles = event_B_cts / frame_duration_cts;
+    t1matchA.n_cycles = frame_matchA_cts / frame_length_cts;
+    t1matchB.n_cycles = frame_matchB_cts / frame_length_cts;
 
     // Initialize the cycle counters
     t1ovflow.cycle = 0;
     t1matchA.cycle = 0;
     t1matchB.cycle = 0;
 
-    // Set the timer registers
-    ICR1 = (frame_duration_cts > 0) ? frame_duration_cts - 1 : 0;
-    OCR1A = event_A_cts % frame_duration_cts;
-    OCR1B = event_B_cts % frame_duration_cts;
+    // Disable interrupts to avoid inconsistent results
+    uint8_t old_SREG = SREG;
+    cli();
+
+    // Set timer1 registers ICR1, OCR1A and OCR1B to get precise interrupt timings
+    // Interframe length is multiple of ICR1-long cycles
+    ICR1 = (frame_length_cts > 0) ? frame_length_cts - 1 : 0;
+    // Division remainder after several timer cycles
+    OCR1A = frame_matchA_cts % frame_length_cts;
+    OCR1B = frame_matchB_cts % frame_length_cts;
+    // Subtract 1, but ensure it does not go below zero
     OCR1A = (OCR1A > 0) ? OCR1A - 1 : 0;
-    OCR1B = (OCR1B > 0) ? OCR1B - 1 : 0;
+    OCR1B = (OCR1B > 0) ? OCR1B - 1 : 0; // Subtract 1, but ensure it does not go below zero
 
     // Reset and configure the timer
-    TCNT1 = ICR1 - 2;
-    TCCR1A = bit(WGM11);
-    TCCR1B = bit(WGM12) | bit(WGM13) | presc.TCCR1B_bits;
+    sys.time += TCNT1 + 2;
 
-    // Enable interrupts for overflow, match A, and match B
-    TIMSK1 = bit(TOIE1) | bit(OCIE1A) | bit(OCIE1B);
+    // Start shortly before overflow
+    TCNT1 = ICR1 - 2;
+
+    // Restore old SREG, which enables interrupts
+    SREG = old_SREG;
 }
 
 void OVF_interrupt_handler()
@@ -193,7 +214,7 @@ void MatchB_interrupt_handler()
 
 ISR(TIMER1_OVF_vect)
 {
-    sys.time += presc.cts2us(ICR1);
+    sys.time += prescaler.cts2us(ICR1);
 
     if (sys.status == STATUS::IDLE)
         return;
