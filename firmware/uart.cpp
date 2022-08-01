@@ -120,6 +120,24 @@ void parse_UART_command()
         send_ok();
         break;
 
+    // Set strobe flash duration
+    case 'E':
+        sys.strobe_duration_us = data.strobe_duration_us;
+        send_ok();
+        break;
+
+    // Set ALEX cycle delay (for timelapse with ALEX)
+    case 'A':
+        sys.ALEX_cycle_delay_us = data.ALEX_cycle_delay_us;
+        send_ok();
+        break;
+
+    // Stop image acquisition
+    case 'Q':
+        sys.status = STATUS::IDLE;
+        send_ok();
+        break;
+
     default:
         break;
     }
@@ -139,21 +157,6 @@ void poll_UART()
 /*
 
 
-
-
-
-    // Set strobe flash duration
-    case 'E':
-        sys.strobe_duration_us = data.strobe_duration_us;
-        send_ok();
-        break;
-
-    // Set ALEX cycle delay (for timelapse with ALEX)
-    case 'A':
-        sys.ALEX_cycle_delay_us = data.ALEX_cycle_delay_us;
-        send_ok();
-        break;
-
     // Start continuous image acquisition
     case 'C':
         start_continuous_acq(data.n_frames);
@@ -169,13 +172,8 @@ void poll_UART()
         }
         break;
 
-    // Stop image acquisition
-    case 'Q':
-        send_ok();
-        break;
 
     default:
-        sys.status = STATUS::IDLE;
         break;
 
 
