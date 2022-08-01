@@ -11,15 +11,25 @@
 #include "triggers.h"    // port config, open/close shutters, send triggers.
 #include "events.h"      // event loop - handling of event processing
 
+Event fluidics_triger_up = Event(0, fluidics_pin_up);
+Event fluidics_triger_down = Event(0, fluidics_pin_down);
+
 void setup()
 {
   setup_IO_ports();
   setup_UART();
+
+  fluidics_triger_up.schedule(400000, 500000, 1);
+  fluidics_triger_down.schedule(500000, 500000, 1);
 }
 
 void loop()
 {
   check_UART_inbox();
+
+  // Check events
+  fluidics_triger_up.check_event();
+  fluidics_triger_down.check_event();
 
   // flip event loop pin - allows to monitor how fast loop() runs
   EVENT_LOOP_PIN_FLIP = bit(EVENT_LOOP_PIN);

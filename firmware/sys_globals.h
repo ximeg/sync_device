@@ -51,7 +51,7 @@ enum STATUS
 inline struct SystemSettings
 {
     STATUS status;
-    bool up;
+    uint64_t time;
     int32_t fluidics_delay_us;
     uint32_t interframe_time_us;
     uint32_t strobe_duration_us;
