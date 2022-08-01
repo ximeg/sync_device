@@ -20,30 +20,40 @@ class Event
 {
 private:
     void (*event_handler)();
-    uint32_t event_timestamp_us;
-    uint32_t repeat_every_us;
-    uint32_t number_events;
-    uint32_t times_fired;
+    uint64_t event_timestamp_us;
+    uint64_t repeat_every_us;
+    uint32_t N_times;
+    uint32_t event_counter;
 
 public:
-    Event(uint32_t event_timestamp_us, void (*event_handler)(), uint32_t repeat_every_us = 0, uint32_t number_events = 0);
-    void schedule(uint32_t event_timestamp_us, uint32_t repeat_every_us = 0, uint32_t number_events = 0);
+    Event(uint64_t event_timestamp_us, void (*event_handler)(), uint64_t repeat_every_us = 0, uint32_t N_times = 0);
+    void schedule(uint64_t event_timestamp_us);
+    void schedule(uint64_t event_timestamp_us, uint64_t repeat_every_us);
+    void schedule(uint64_t event_timestamp_us, uint64_t repeat_every_us, uint32_t N_times);
     bool event_ended;
     void check_event();
 };
 
-Event::Event(uint32_t event_timestamp_us, void (*event_handler)(), uint32_t repeat_every_us, uint32_t number_events)
+Event::Event(uint64_t event_timestamp_us, void (*event_handler)(), uint64_t repeat_every_us, uint32_t N_times)
 {
     this->event_handler = event_handler;
-    schedule(event_timestamp_us, repeat_every_us, number_events);
+    schedule(event_timestamp_us, repeat_every_us, N_times);
 }
 
-void Event::schedule(uint32_t event_timestamp_us, uint32_t repeat_every_us, uint32_t number_events)
+void Event::schedule(uint64_t event_timestamp_us)
 {
-    times_fired = 0;
-    event_ended = false;
+    schedule(event_timestamp_us, repeat_every_us, N_times);
+}
+void Event::schedule(uint64_t event_timestamp_us, uint64_t repeat_every_us)
+{
+    schedule(event_timestamp_us, repeat_every_us, N_times);
+}
+void Event::schedule(uint64_t event_timestamp_us, uint64_t repeat_every_us, uint32_t N_times)
+{
+    event_counter = 0;
+    event_ended = (event_timestamp_us) ? false : true;
     this->event_timestamp_us = event_timestamp_us;
-    this->number_events = (number_events) ? number_events : UINT32_MAX;
+    this->N_times = (N_times) ? N_times : UINT32_MAX;
     this->repeat_every_us = repeat_every_us;
 }
 
@@ -56,7 +66,7 @@ void Event::check_event()
             event_handler();
 
             // Do we need to reschedule it?
-            if (repeat_every_us && (++times_fired < number_events))
+            if (repeat_every_us && (++event_counter < N_times))
             {
                 event_timestamp_us += repeat_every_us;
             }
@@ -80,9 +90,10 @@ void down()
 
 int main()
 {
-    Event trigger_up = Event(50, up, 200, 4);
-    Event trigger_down = Event(70, down, 200, 4);
+    Event trigger_up = Event(0, up, 200, 4); // 0 means deactivated, but configured
+    Event trigger_down = Event(270, down, 200, 4);
 
+    trigger_up.schedule(250);
     do
     {
         trigger_up.check_event();
