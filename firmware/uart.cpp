@@ -125,7 +125,7 @@ void parse_UART_command()
     }
 }
 
-void check_UART_inbox()
+void poll_UART()
 {
     if (Serial.available())
     {

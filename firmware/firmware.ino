@@ -17,7 +17,7 @@ Event event_fluidics_TTL_dn = Event(0, fluidic_pin_down);
 
 void loop()
 {
-  check_UART_inbox();
+  poll_UART();
 
   // Check and execute all scheduled events
   if (sys.status != STATUS::IDLE)

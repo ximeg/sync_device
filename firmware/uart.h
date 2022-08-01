@@ -18,6 +18,6 @@
 #define DATA_PACKET_LENGTH 5
 
 void setup_UART();
-void check_UART_inbox();
+void poll_UART();
 
 #endif // UART_H
