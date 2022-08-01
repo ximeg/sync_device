@@ -4,18 +4,16 @@
 #include "triggers.h"    // port config, open/close shutters, send triggers.
 #include "events.h"      // event loop - handling of event processing
 
-Event event_fluidics_TTL_up = Event(0, fluidic_pin_up);
-Event event_fluidics_TTL_dn = Event(0, fluidic_pin_down);
-
 void setup()
 {
   setup_IO_ports();
   setup_UART();
   setup_timer1();
-
-  setup_timer1();
-  // TIMSK0 = 0; // THIS LINE IS PROBLEMATIC... WHY?! I want to deactivate Arduino's default timer0 interrupt, we don't need it. I think Serial also relies on timer0
+  // TODO: disable timer0? It might affect UART
 }
+
+Event event_fluidics_TTL_up = Event(0, fluidic_pin_up);
+Event event_fluidics_TTL_dn = Event(0, fluidic_pin_down);
 
 void loop()
 {
