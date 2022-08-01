@@ -11,29 +11,32 @@
 #include "triggers.h"    // port config, open/close shutters, send triggers.
 #include "events.h"      // event loop - handling of event processing
 
-Event event_fluidics_TTL_up = Event(0, fluidics_pin_up);
-Event event_fluidics_TTL_dn = Event(0, fluidics_pin_down);
+Event event_fluidics_TTL_up = Event(0, fluidic_pin_up);
+Event event_fluidics_TTL_dn = Event(0, fluidic_pin_down);
 
 void setup()
 {
   setup_IO_ports();
   setup_UART();
+  setup_timer1();
 
-  event_fluidics_TTL_up.schedule(400000, 200000);
-  event_fluidics_TTL_dn.schedule(450000, 200000);
-
-  start_timer1();
-  // TIMSK0 = 0; // THIS LINE IS PROBLEMATIC... WHY?! I want to deactivate Arduino's default timer0 interrupt, we don't need it
+  setup_timer1();
+  // TIMSK0 = 0; // THIS LINE IS PROBLEMATIC... WHY?! I want to deactivate Arduino's default timer0 interrupt, we don't need it. I think Serial also relies on timer0
 }
 
 void loop()
 {
   check_UART_inbox();
 
-  // Check events
-  event_fluidics_TTL_up.check_event();
-  event_fluidics_TTL_dn.check_event();
-  // event_start_imaging.check_event();
+  // Check and execute all scheduled events
+  if (sys.status != STATUS::IDLE)
+  {
+    // Fluidics trigger
+    event_fluidics_TTL_up.check_event();
+    event_fluidics_TTL_dn.check_event();
+
+    // event_start_imaging.check_event();
+  }
 
   // flip event loop pin - allows to monitor how fast `loop()` runs
   EVENT_LOOP_PIN_FLIP = bit(EVENT_LOOP_PIN);

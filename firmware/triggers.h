@@ -5,7 +5,12 @@
 
 extern void setup_IO_ports();
 
-inline void fluidics_pin_up() { FLUIDIC_PORT |= bit(FLUIDIC_PIN); }
-inline void fluidics_pin_down() { FLUIDIC_PORT &= ~bit(FLUIDIC_PIN); }
+void camera_pin_up();
+void camera_pin_down();
+
+void fluidic_pin_up();
+void fluidic_pin_down();
+
+void write_shutters(uint8_t value);
 
 #endif // TRIGGERS_H

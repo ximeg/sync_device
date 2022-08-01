@@ -16,3 +16,28 @@ void setup_IO_ports()
 
     EVENT_LOOP_DDR |= bit(EVENT_LOOP_PIN);
 }
+
+void camera_pin_up()
+{
+    CAMERA_PORT |= bit(CAMERA_PIN);
+}
+
+void camera_pin_down()
+{
+    CAMERA_PORT &= ~bit(CAMERA_PIN);
+}
+
+void fluidic_pin_up()
+{
+    FLUIDIC_PORT |= bit(FLUIDIC_PIN);
+}
+
+void fluidic_pin_down()
+{
+    FLUIDIC_PORT &= ~bit(FLUIDIC_PIN);
+}
+
+void write_shutters(uint8_t value)
+{
+    SHUTTERS_PORT = (SHUTTERS_PORT & ~SHUTTERS_MASK) | value;
+}

@@ -51,6 +51,15 @@ union Data
 // then convert it to pointer to unsigned char, and dereference it.
 #define MEM_IO_8bit(mem_addr) (*(volatile uint8_t *)(uintptr_t)(mem_addr))
 
+// UART responses
+void send_ok() { Serial.print("OK\n"); }
+void send_err() { Serial.print("ERR\n"); }
+void send_err(const char *msg)
+{
+    Serial.print(msg);
+    Serial.print("\n");
+}
+
 void setup_UART()
 {
     Serial.begin(2000000);
@@ -79,21 +88,7 @@ void parse_UART_command()
     case 'W':
         MEM_IO_8bit(data.R.addr) = data.R.value;
         break;
-    }
-}
 
-void check_UART_inbox()
-{
-    if (Serial.available())
-    {
-        if (Serial.readBytes(data.bytes, DATA_PACKET_LENGTH) == DATA_PACKET_LENGTH)
-        {
-            parse_UART_command();
-        }
-    }
-}
-
-/*
     // Set fluidics delay
     case 'F':
         sys.fluidics_delay_us = data.fluidics_delay_us;
@@ -124,16 +119,27 @@ void check_UART_inbox()
         send_ok();
         break;
 
-    // Set interframe time delay
-    case 'I':
-        if (data.interframe_time_us < 50)
-        {
-            send_err("Interframe time is too short");
-            break;
-        }
-        sys.interframe_time_us = data.interframe_time_us;
-        send_ok();
+    default:
         break;
+    }
+}
+
+void check_UART_inbox()
+{
+    if (Serial.available())
+    {
+        if (Serial.readBytes(data.bytes, DATA_PACKET_LENGTH) == DATA_PACKET_LENGTH)
+        {
+            parse_UART_command();
+        }
+    }
+}
+
+/*
+
+
+
+
 
     // Set strobe flash duration
     case 'E':

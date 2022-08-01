@@ -1,5 +1,9 @@
 #include "events.h"
 
+#ifndef _AVR_IOXXX_H_
+#include <avr/iom328.h>
+#endif
+
 typedef struct
 {
     uint8_t bits;
@@ -73,7 +77,7 @@ ISRcounter t1matchB;
 
 // TODO: rename this?? Timer1 should always be running for sys.time. However, we need to keep in mind
 // that some interrupts will be disabled to behave in different ways depending on sys.status
-void start_timer1()
+void setup_timer1()
 {
     // We have three interrupts. Each of them must trigger a corresponding function
     // at most ONCE. However, the interrupts might occur more than once.
@@ -133,7 +137,8 @@ ISR(TIMER1_OVF_vect)
 {
     sys.time += ICR1 << prescaler.bitshift;
 
-    PINC = bit(PINC5);
+    if (sys.status == STATUS::IDLE)
+        return;
 
     // Timer to call interrupt handler
     if (++t1over.cycle == t1over.n_cycles)
@@ -147,6 +152,9 @@ ISR(TIMER1_OVF_vect)
 
 ISR(TIMER1_COMPA_vect)
 {
+    if (sys.status == STATUS::IDLE)
+        return;
+
     // Timer to call interrupt handler
     if (t1matchA.cycle++ == t1matchA.n_cycles)
     {
@@ -156,6 +164,9 @@ ISR(TIMER1_COMPA_vect)
 
 ISR(TIMER1_COMPB_vect)
 {
+    if (sys.status == STATUS::IDLE)
+        return;
+
     // Timer to call interrupt handler
     if (t1matchB.cycle++ == t1matchB.n_cycles)
     {
