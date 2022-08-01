@@ -5,6 +5,8 @@
 #include <Arduino.h>
 #include "sys_globals.h"
 
+extern void start_timer1();
+
 class Event
 {
 private:
