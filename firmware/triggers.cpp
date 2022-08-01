@@ -1,6 +1,4 @@
-#include <Arduino.h>
 #include "triggers.h"
-#include "sys_globals.h"
 
 // Configure output ports (data direction registers and default values)
 void setup_IO_ports()

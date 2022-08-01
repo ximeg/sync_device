@@ -1,6 +1,6 @@
-#include <Arduino.h>
 #include "uart.h"
-#include "sys_globals.h"
+#include "utils.h"
+#include "triggers.h"
 
 /***************************************
 COMMUNICATION PROTOCOL DEFINITIONS

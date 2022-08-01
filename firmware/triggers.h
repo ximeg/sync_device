@@ -3,7 +3,7 @@
 
 #include "sys_globals.h"
 
-extern void setup_IO_ports();
+void setup_IO_ports();
 
 void camera_pin_up();
 void camera_pin_down();

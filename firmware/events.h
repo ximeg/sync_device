@@ -1,11 +1,9 @@
 #ifndef EVENTS_H
 #define EVENTS_H
 
-#include <stdint.h>
-#include <Arduino.h>
 #include "sys_globals.h"
 
-extern void setup_timer1();
+void setup_timer1();
 
 class Event
 {

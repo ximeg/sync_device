@@ -1,10 +1,3 @@
-#include <stdint.h>
-#include <Arduino.h>
-
-#ifndef _AVR_IOXXX_H_
-#include <avr/iom328.h>
-#endif
-
 #include "sys_globals.h" // system time, state, settings, (pin assignments?)
 #include "utils.h"       // convert bits, count bits, etc open/close shutters, send triggers.
 #include "uart.h"        // setup_uart, parse_command, data definition

@@ -1,9 +1,5 @@
 #include "events.h"
 
-#ifndef _AVR_IOXXX_H_
-#include <avr/iom328.h>
-#endif
-
 typedef struct
 {
     uint8_t bits;

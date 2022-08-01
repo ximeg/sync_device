@@ -3,6 +3,9 @@
 
 #include <stdint.h>
 #include <Arduino.h>
+#ifndef _AVR_IOXXX_H_
+#include <avr/iom328.h>
+#endif
 
 #define VERSION "0.3.0\n"
 

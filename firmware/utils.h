@@ -1,8 +1,6 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#include <stdint.h>
-#include <Arduino.h>
 #include "sys_globals.h"
 
 // Bit manipulation
