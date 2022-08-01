@@ -1,3 +1,14 @@
+/**
+ * @file events.h
+ * @author Roman Kiselev (roman.kiselev@stjude.org)
+ * @brief Event handling routines and timer1 interrupts
+ * @version 0.3
+ * @date 2022-08-01
+ *
+ * @copyright Copyright (c) 2022
+ *
+ */
+
 #ifndef EVENTS_H
 #define EVENTS_H
 

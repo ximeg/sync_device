@@ -1,3 +1,14 @@
+/**
+ * @file utils.h
+ * @author Roman Kiselev (roman.kiselev@stjude.org)
+ * @brief Miscellaneous untility functions (e.g. bit counting)
+ * @version 0.3
+ * @date 2022-08-01
+ *
+ * @copyright Copyright (c) 2022
+ *
+ */
+
 #ifndef UTILS_H
 #define UTILS_H
 

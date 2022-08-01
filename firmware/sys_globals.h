@@ -1,10 +1,21 @@
+/**
+ * @file sys_globals.h
+ * @author Roman Kiselev (roman.kiselev@stjude.org)
+ * @brief Global system definitions: pinout and settings. Also provides stdint.h and Arduino libraries
+ * @version 0.3
+ * @date 2022-08-01
+ *
+ * @copyright Copyright (c) 2022
+ *
+ */
+
 #ifndef SYS_GLOBALS_H
 #define SYS_GLOBALS_H
 
 #include <stdint.h>
 #include <Arduino.h>
 #ifndef _AVR_IOXXX_H_
-#include <avr/iom328.h>
+#include <avr/iom328.h> // Arduino Uno uses AtMega328p microchip
 #endif
 
 #define VERSION "0.3.0\n"

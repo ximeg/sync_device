@@ -2,9 +2,9 @@
 #include "utils.h"
 #include "triggers.h"
 
-/***************************************
-COMMUNICATION PROTOCOL DEFINITIONS
-***************************************/
+/********************************
+COMMUNICATION PROTOCOL DEFINITION
+********************************/
 
 #pragma pack(push) /* push current alignment to stack */
 #pragma pack(1)    /* set alignment to 1 byte boundary */
@@ -70,6 +70,7 @@ void setup_UART()
     {
     }
     Serial.flush();
+
     // Notify the host that we are ready
     Serial.print("Arduino is ready. Firmware version: ");
     Serial.print(VERSION);
