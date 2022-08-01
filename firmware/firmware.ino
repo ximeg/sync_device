@@ -23,7 +23,7 @@ void setup()
   event_fluidics_TTL_dn.schedule(450000, 200000);
 
   start_timer1();
-  TIMSK0 = 0; // deactivate Arduino's default timer0 interrupt, we don't need it
+  // TIMSK0 = 0; // THIS LINE IS PROBLEMATIC... WHY?! I want to deactivate Arduino's default timer0 interrupt, we don't need it
 }
 
 void loop()
