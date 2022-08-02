@@ -2,57 +2,25 @@
 #include "triggers.h"
 
 // Timer 1 prescaler configuration. See AtMega328 datasheet table 15-6
-class Prescaler
-{
-private:
-    int8_t leftshift_cts2us;
-    uint16_t factor;
+#define PRESC64
 
-public:
-    Prescaler(uint16_t factor = 64);
-    uint8_t TCCR1B_bits;
-    uint32_t (*cts2us)(uint32_t cts); // counts to microseconds
-    uint32_t (*us2cts)(uint32_t us);  // microseconds to counts
-};
+#ifdef PRESC64
+const uint8_t presc_shift = 2;
+const uint8_t TCCR1B_bits = bit(CS10) | bit(CS11);
+#endif // PRESC64
 
-Prescaler::Prescaler(uint16_t factor)
-{
-    this->factor = factor;
-    switch (factor)
-    {
-    // 4us cycle
-    case 64:
-        TCCR1B_bits = bit(CS10) | bit(CS11);
-        cts2us = [](uint32_t cts)
-        { return cts << 2; };
+#ifdef PRESC256
+const uint8_t presc_shift = 4;
+const uint8_t TCCR1B_bits = bit(CS12);
+#endif // PRESC256
 
-        us2cts = [](uint32_t us)
-        { return us >> 2; };
-        break;
+#ifdef PRESC1024
+const uint8_t presc_shift = 6;
+const uint8_t TCCR1B_bits = bit(CS10) | bit(CS12);
+#endif // PRESC1024
 
-    // 16us cycle
-    case 256:
-        TCCR1B_bits = bit(CS12);
-        cts2us = [](uint32_t cts)
-        { return cts << 4; };
-
-        us2cts = [](uint32_t us)
-        { return us >> 4; };
-        break;
-
-    // 64us cycle
-    case 1024:
-        TCCR1B_bits = bit(CS10) | bit(CS12);
-        cts2us = [](uint32_t cts)
-        { return cts << 6; };
-
-        us2cts = [](uint32_t us)
-        { return us >> 6; };
-        break;
-    }
-};
-
-Prescaler prescaler = Prescaler(8);
+#define cts2us(cts) (cts << presc_shift) // counts to microseconds
+#define us2cts(us) (us >> presc_shift)   // microseconds to counts
 
 Event::Event(uint64_t event_timestamp_us, void (*event_handler)(), uint64_t repeat_every_us, uint32_t N_times)
 {
@@ -82,7 +50,7 @@ void Event::poll()
     if (!event_ended)
     {
         // maybe cache sys.time + TCNT1 cts to speedup computing? Check it with osci
-        if (sys.time + prescaler.cts2us(TCNT1) > event_timestamp_us)
+        if (sys.time + cts2us(TCNT1) > event_timestamp_us)
         {
             event_handler();
 
@@ -101,8 +69,8 @@ void Event::poll()
 
 typedef struct
 {
-    uint8_t cycle;
-    uint8_t n_cycles;
+    uint16_t cycle;
+    uint16_t n_cycles;
 } ISRcounter;
 
 ISRcounter t1ovflow;
@@ -113,7 +81,7 @@ void start_timer1()
 {
     // WGM mode 14 (fast PWM with ICR1 max)
     TCCR1A = bit(WGM11);
-    TCCR1B = bit(WGM12) | bit(WGM13) | prescaler.TCCR1B_bits;
+    TCCR1B = bit(WGM12) | bit(WGM13) | TCCR1B_bits;
 
     // Set timing registers
     ICR1 = UINT16_MAX;
@@ -129,9 +97,9 @@ void setup_timer1(uint32_t frame_length_us, uint32_t frame_matchA_us, uint32_t f
     // interframe period is longer than 65k timer counts.
 
     // First, convert all intervals from microseconds to timer counts
-    uint32_t frame_length_cts = prescaler.us2cts(frame_length_us);
-    uint32_t frame_matchA_cts = prescaler.us2cts(frame_matchA_us);
-    uint32_t frame_matchB_cts = prescaler.us2cts(frame_matchB_us);
+    uint32_t frame_length_cts = us2cts(frame_length_us);
+    uint32_t frame_matchA_cts = us2cts(frame_matchA_us);
+    uint32_t frame_matchB_cts = us2cts(frame_matchB_us);
 
     t1ovflow.n_cycles = 1;
     // We divide required #ticks in half until if fits into 16bit
@@ -216,13 +184,12 @@ ISR(TIMER1_COMPB_vect) // interrupt 12
         }
     }
 
-    // this takes 10us with uint64 time, or 7.5 us with uint32
-    sys.time += prescaler.cts2us(ICR1);
+    // Increase system time by one timer cycle
+    sys.time += cts2us(ICR1);
 }
 
 ISR(TIMER1_OVF_vect) // interrupt 13
 {
-
     PINC = bit(PINC3);
 
     if (sys.status == STATUS::IDLE)
