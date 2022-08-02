@@ -1,4 +1,5 @@
 #include "events.h"
+#include "triggers.h"
 
 // Timer 1 prescaler configuration. See AtMega328 datasheet table 15-6
 class Prescaler
@@ -19,26 +20,6 @@ Prescaler::Prescaler(uint16_t factor)
     this->factor = factor;
     switch (factor)
     {
-    // 62.5ns cycle (16x per microsecond)
-    case 1:
-        TCCR1B_bits = bit(CS10);
-        cts2us = [](uint32_t cts)
-        { return cts >> 4; };
-
-        us2cts = [](uint32_t us)
-        { return us << 4; };
-        break;
-
-    // 500ns cycle (2x per microsecond)
-    case 8:
-        TCCR1B_bits = bit(CS11);
-        cts2us = [](uint32_t cts)
-        { return cts >> 1; };
-
-        us2cts = [](uint32_t us)
-        { return us << 1; };
-        break;
-
     // 4us cycle
     case 64:
         TCCR1B_bits = bit(CS10) | bit(CS11);
@@ -118,13 +99,10 @@ void Event::poll()
     }
 }
 
-static volatile uint32_t event_A_us = 1000; // in microseconds
-static volatile uint32_t event_B_us = 500;  // in microseconds
-
 typedef struct
 {
-    uint16_t cycle;
-    uint16_t n_cycles;
+    uint8_t cycle;
+    uint8_t n_cycles;
 } ISRcounter;
 
 ISRcounter t1ovflow;
@@ -137,6 +115,7 @@ void start_timer1()
     TCCR1A = bit(WGM11);
     TCCR1B = bit(WGM12) | bit(WGM13) | prescaler.TCCR1B_bits;
 
+    // Set timing registers
     ICR1 = UINT16_MAX;
 
     // Enable interrupts for overflow, match A, and match B
@@ -175,16 +154,20 @@ void setup_timer1(uint32_t frame_length_us, uint32_t frame_matchA_us, uint32_t f
     GTCCR = bit(TSM) | bit(PSRSYNC);
 
     // Set timer1 registers ICR1, OCR1A and OCR1B to get precise interrupt timings
-    // Interframe length is multiple of ICR1-long cycles
-    ICR1 = (frame_length_cts > 0) ? frame_length_cts - 1 : 0;
+    // Interframe length is multiple of ICR1-long cycles. ICR1 has to be greater than 0
+    ICR1 = (frame_length_cts > 1) ? frame_length_cts - 1 : 1;
 
     // Division remainder after several timer cycles
     OCR1A = frame_matchA_cts % frame_length_cts;
     OCR1B = frame_matchB_cts % frame_length_cts;
 
-    // Subtract 1, but ensure it does not go below zero
-    OCR1A = (OCR1A > 0) ? OCR1A - 1 : 0;
-    OCR1B = (OCR1B > 0) ? OCR1B - 1 : 0; // Subtract 1, but ensure it does not go below zero
+    // Subtract 1, but ensure it is at least 1
+    OCR1A = (OCR1A > 1) ? OCR1A - 1 : 1;
+    OCR1B = (OCR1B > 1) ? OCR1B - 1 : 1;
+
+    // Ensure OCR1A < OCR1B < ICR1
+    OCR1B = (OCR1B >= ICR1) ? ICR1 - 1 : OCR1B;
+    OCR1A = (OCR1A >= OCR1B) ? OCR1B - 1 : OCR1A;
 
     // Update system time, then start timer a moment before overflow occurs
     sys.time += TCNT1 + 2;
@@ -194,17 +177,19 @@ void setup_timer1(uint32_t frame_length_us, uint32_t frame_matchA_us, uint32_t f
     GTCCR = 0;
 }
 
-void OVF_interrupt_handler()
+void frame_start_event()
 {
     PINC = bit(PINC0);
 }
-void MatchA_interrupt_handler()
+
+void frame_matchA_event()
 {
-    PINC = bit(PINC1);
+    camera_pin_up();
 }
-void MatchB_interrupt_handler()
+
+void frame_MatchB_event()
 {
-    PINC = bit(PINC2);
+    camera_pin_down();
 }
 
 ISR(TIMER1_COMPA_vect) // interrupt 11
@@ -215,25 +200,28 @@ ISR(TIMER1_COMPA_vect) // interrupt 11
     // Timer to call interrupt handler
     if (t1matchA.cycle++ == t1matchA.n_cycles)
     {
-        MatchA_interrupt_handler();
+        frame_matchA_event();
     }
 }
 
 ISR(TIMER1_COMPB_vect) // interrupt 12
 {
-    if (sys.status == STATUS::IDLE)
-        return;
-
-    // Timer to call interrupt handler
-    if (t1matchB.cycle++ == t1matchB.n_cycles)
+    if (sys.status != STATUS::IDLE)
     {
-        MatchB_interrupt_handler();
+
+        // Timer to call interrupt handler
+        if (t1matchB.cycle++ == t1matchB.n_cycles)
+        {
+            frame_MatchB_event();
+        }
     }
+
+    // this takes 10us with uint64 time, or 7.5 us with uint32
+    sys.time += prescaler.cts2us(ICR1);
 }
 
 ISR(TIMER1_OVF_vect) // interrupt 13
 {
-    sys.time += prescaler.cts2us(ICR1);
 
     PINC = bit(PINC3);
 
@@ -243,7 +231,7 @@ ISR(TIMER1_OVF_vect) // interrupt 13
     // Timer to call interrupt handler
     if (++t1ovflow.cycle == t1ovflow.n_cycles)
     {
-        OVF_interrupt_handler();
+        frame_start_event();
         t1ovflow.cycle = 0;
         t1matchA.cycle = 0;
         t1matchB.cycle = 0;

@@ -124,14 +124,14 @@ void parse_UART_command()
     // Set interframe interval
     case 'I':
         sys.interframe_time_us = data.interframe_time_us;
-        setup_timer1(sys.interframe_time_us, sys.strobe_duration_us, sys.strobe_duration_us >> 8);
+        setup_timer1(sys.interframe_time_us, sys.strobe_duration_us, sys.strobe_duration_us + (sys.interframe_time_us >> 3));
         send_ok();
         break;
 
     // Set strobe flash duration
     case 'E':
         sys.strobe_duration_us = data.strobe_duration_us;
-        setup_timer1(sys.interframe_time_us, sys.strobe_duration_us, sys.strobe_duration_us >> 8);
+        setup_timer1(sys.interframe_time_us, sys.strobe_duration_us, sys.strobe_duration_us + (sys.interframe_time_us >> 3));
         send_ok();
         break;
 
@@ -144,7 +144,7 @@ void parse_UART_command()
     // Start continuous image acquisition
     case 'C':
         sys.status = STATUS::CONTINUOUS_ACQ;
-        setup_timer1(sys.interframe_time_us, sys.strobe_duration_us, sys.strobe_duration_us >> 8);
+        setup_timer1(sys.interframe_time_us, sys.strobe_duration_us, sys.strobe_duration_us + (sys.interframe_time_us >> 3));
         send_ok();
         break;
 
