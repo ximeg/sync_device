@@ -123,6 +123,11 @@ void parse_UART_command()
 
     // Set interframe interval
     case 'I':
+        if (data.interframe_time_us < 40)
+        {
+            send_err("ACQ error: interframe interval is too short");
+            break;
+        }
         sys.interframe_time_us = data.interframe_time_us;
         setup_timer1(sys.interframe_time_us, sys.strobe_duration_us, sys.strobe_duration_us + (sys.interframe_time_us >> 3));
         send_ok();
