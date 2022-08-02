@@ -14,7 +14,19 @@
 
 #include "sys_globals.h"
 
-void setup_timer1();
+/**
+ * @brief Configure and start timer 1 in the default mode. If system is IDLE, it is responsible only for the system time.
+ */
+void start_timer1();
+
+/**
+ * @brief Configure timer1 to control camera and laser shutter triggers with custom timings.
+ *
+ * @param frame_length_us  Frame duration in microseconds. `OVF_interrupt_handler()` is called once at the start of each frame
+ * @param frame_matchA_us  Time point to call `MatchA_interrupt_handler()` once relative to the frame start
+ * @param frame_matchB_us  Time point to call `MatchB_interrupt_handler()` once relative to the frame start
+ */
+void setup_timer1(uint32_t frame_length_us, uint32_t frame_matchA_us, uint32_t frame_matchB_us);
 
 /**
  * @brief A scheduled, potentially repetitive, event. Calls event handler when it's time to do so.

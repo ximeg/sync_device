@@ -8,7 +8,7 @@ void setup()
 {
   setup_IO_ports();
   setup_UART();
-  setup_timer1();
+  start_timer1();
   // TODO: disable timer0? It might affect UART
 }
 

@@ -131,9 +131,7 @@ ISRcounter t1ovflow;
 ISRcounter t1matchA;
 ISRcounter t1matchB;
 
-// Configure and start timer 1 in the default mode. If system is IDLE, it is
-// responsible only for the system time.
-void setup_timer1()
+void start_timer1()
 {
     // WGM mode 14 (fast PWM with ICR1 max)
     TCCR1A = bit(WGM11);
@@ -145,18 +143,16 @@ void setup_timer1()
     TIMSK1 = bit(TOIE1) | bit(OCIE1A) | bit(OCIE1B);
 }
 
-// Configure timer1 to run synchronously with camera and laser shutters and
-// trigger them with overflow and match interrupts.
-void start_acquisition()
+void setup_timer1(uint32_t frame_length_us, uint32_t frame_matchA_us, uint32_t frame_matchB_us)
 {
     // We have three interrupts. Each of them must trigger a corresponding function
     // at most ONCE. However, the interrupts might occur more than once if the
     // interframe period is longer than 65k timer counts.
 
     // First, convert all intervals from microseconds to timer counts
-    uint32_t frame_length_cts = prescaler.us2cts(sys.interframe_time_us);
-    uint32_t frame_matchA_cts = prescaler.us2cts(event_A_us); // TOOD: calculate event_A/B_us depending on imaging mode
-    uint32_t frame_matchB_cts = prescaler.us2cts(event_B_us); // TOOD: calculate event_A/B_us depending on imaging mode
+    uint32_t frame_length_cts = prescaler.us2cts(frame_length_us);
+    uint32_t frame_matchA_cts = prescaler.us2cts(frame_matchA_us);
+    uint32_t frame_matchB_cts = prescaler.us2cts(frame_matchB_us);
 
     t1ovflow.n_cycles = 1;
     // We divide required #ticks in half until if fits into 16bit
@@ -175,28 +171,27 @@ void start_acquisition()
     t1matchA.cycle = 0;
     t1matchB.cycle = 0;
 
-    // Disable interrupts to avoid inconsistent results
-    uint8_t old_SREG = SREG;
-    cli();
+    // Pause timer1 to avoid inconsistent results
+    GTCCR = bit(TSM) | bit(PSRSYNC);
 
     // Set timer1 registers ICR1, OCR1A and OCR1B to get precise interrupt timings
     // Interframe length is multiple of ICR1-long cycles
     ICR1 = (frame_length_cts > 0) ? frame_length_cts - 1 : 0;
+
     // Division remainder after several timer cycles
     OCR1A = frame_matchA_cts % frame_length_cts;
     OCR1B = frame_matchB_cts % frame_length_cts;
+
     // Subtract 1, but ensure it does not go below zero
     OCR1A = (OCR1A > 0) ? OCR1A - 1 : 0;
     OCR1B = (OCR1B > 0) ? OCR1B - 1 : 0; // Subtract 1, but ensure it does not go below zero
 
-    // Reset and configure the timer
+    // Update system time, then start timer a moment before overflow occurs
     sys.time += TCNT1 + 2;
-
-    // Start shortly before overflow
     TCNT1 = ICR1 - 2;
 
-    // Restore old SREG, which enables interrupts
-    SREG = old_SREG;
+    // Release the timer and let it run
+    GTCCR = 0;
 }
 
 void OVF_interrupt_handler()
