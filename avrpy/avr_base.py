@@ -208,6 +208,7 @@ class AVR_Base(object):
     def interframe_time_us(self, us=100_000):
         with self.com as com:
             com.write(pad(b"I" + cu32(us)))
+        self._interframe_time_us = us
 
     @property
     def strobe_duration_us(self):
@@ -220,6 +221,7 @@ class AVR_Base(object):
     def strobe_duration_us(self, us=25_000):
         with self.com as com:
             com.write(pad(b"E" + cu32(us)))
+        self._strobe_duration_us = us
 
     @property
     def ALEX_cycle_delay_us(self):

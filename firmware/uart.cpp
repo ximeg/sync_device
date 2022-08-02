@@ -1,6 +1,7 @@
 #include "uart.h"
 #include "utils.h"
 #include "triggers.h"
+#include "events.h"
 
 /********************************
 COMMUNICATION PROTOCOL DEFINITION
@@ -120,15 +121,30 @@ void parse_UART_command()
         send_ok();
         break;
 
+    // Set interframe interval
+    case 'I':
+        sys.interframe_time_us = data.interframe_time_us;
+        setup_timer1(sys.interframe_time_us, sys.strobe_duration_us, sys.strobe_duration_us >> 8);
+        send_ok();
+        break;
+
     // Set strobe flash duration
     case 'E':
         sys.strobe_duration_us = data.strobe_duration_us;
+        setup_timer1(sys.interframe_time_us, sys.strobe_duration_us, sys.strobe_duration_us >> 8);
         send_ok();
         break;
 
     // Set ALEX cycle delay (for timelapse with ALEX)
     case 'A':
         sys.ALEX_cycle_delay_us = data.ALEX_cycle_delay_us;
+        send_ok();
+        break;
+
+    // Start continuous image acquisition
+    case 'C':
+        sys.status = STATUS::CONTINUOUS_ACQ;
+        setup_timer1(sys.interframe_time_us, sys.strobe_duration_us, sys.strobe_duration_us >> 8);
         send_ok();
         break;
 
@@ -156,12 +172,7 @@ void poll_UART()
 
 /*
 
-
-    // Start continuous image acquisition
-    case 'C':
-        start_continuous_acq(data.n_frames);
-        send_ok();
-        break;
+f
 
     // Start stroboscopic image acquisition
     case 'S':

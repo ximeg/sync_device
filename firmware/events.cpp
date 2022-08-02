@@ -71,7 +71,7 @@ Prescaler::Prescaler(uint16_t factor)
     }
 };
 
-Prescaler prescaler = Prescaler(1024);
+Prescaler prescaler = Prescaler(8);
 
 Event::Event(uint64_t event_timestamp_us, void (*event_handler)(), uint64_t repeat_every_us, uint32_t N_times)
 {
@@ -196,35 +196,18 @@ void setup_timer1(uint32_t frame_length_us, uint32_t frame_matchA_us, uint32_t f
 
 void OVF_interrupt_handler()
 {
-    PINC = bit(PINC4);
+    PINC = bit(PINC0);
 }
 void MatchA_interrupt_handler()
 {
-    PINC = bit(PINC3);
+    PINC = bit(PINC1);
 }
 void MatchB_interrupt_handler()
 {
     PINC = bit(PINC2);
 }
 
-ISR(TIMER1_OVF_vect)
-{
-    sys.time += prescaler.cts2us(ICR1);
-
-    if (sys.status == STATUS::IDLE)
-        return;
-
-    // Timer to call interrupt handler
-    if (++t1ovflow.cycle == t1ovflow.n_cycles)
-    {
-        OVF_interrupt_handler();
-        t1ovflow.cycle = 0;
-        t1matchA.cycle = 0;
-        t1matchB.cycle = 0;
-    }
-}
-
-ISR(TIMER1_COMPA_vect)
+ISR(TIMER1_COMPA_vect) // interrupt 11
 {
     if (sys.status == STATUS::IDLE)
         return;
@@ -236,7 +219,7 @@ ISR(TIMER1_COMPA_vect)
     }
 }
 
-ISR(TIMER1_COMPB_vect)
+ISR(TIMER1_COMPB_vect) // interrupt 12
 {
     if (sys.status == STATUS::IDLE)
         return;
@@ -245,5 +228,24 @@ ISR(TIMER1_COMPB_vect)
     if (t1matchB.cycle++ == t1matchB.n_cycles)
     {
         MatchB_interrupt_handler();
+    }
+}
+
+ISR(TIMER1_OVF_vect) // interrupt 13
+{
+    sys.time += prescaler.cts2us(ICR1);
+
+    PINC = bit(PINC3);
+
+    if (sys.status == STATUS::IDLE)
+        return;
+
+    // Timer to call interrupt handler
+    if (++t1ovflow.cycle == t1ovflow.n_cycles)
+    {
+        OVF_interrupt_handler();
+        t1ovflow.cycle = 0;
+        t1matchA.cycle = 0;
+        t1matchB.cycle = 0;
     }
 }
