@@ -69,7 +69,7 @@ enum STATUS
     STROBO_ACQ,          // Running stroboscopic acquisition (includes ALEX and timelapse)
 };
 
-inline struct SystemSettings
+inline volatile struct SystemSettings
 {
     STATUS status;
     uint64_t time;
@@ -90,5 +90,7 @@ inline struct SystemSettings
                        interframe_time_us(100000),
                        strobe_duration_us(25000) {}
 } sys;
+
+inline void noop() { ; }
 
 #endif // SYS_GLOBALS_H

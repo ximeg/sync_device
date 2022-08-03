@@ -1,25 +1,5 @@
 #include "events.h"
-
-// Timer 1 prescaler configuration. See AtMega328 datasheet table 15-6
-#define PRESC64
-
-#ifdef PRESC64
-const uint8_t presc_shift = 2;
-const uint8_t TCCR1B_bits = bit(CS10) | bit(CS11);
-#endif // PRESC64
-
-#ifdef PRESC256
-const uint8_t presc_shift = 4;
-const uint8_t TCCR1B_bits = bit(CS12);
-#endif // PRESC256
-
-#ifdef PRESC1024
-const uint8_t presc_shift = 6;
-const uint8_t TCCR1B_bits = bit(CS10) | bit(CS12);
-#endif // PRESC1024
-
-#define cts2us(cts) (cts << presc_shift) // counts to microseconds
-#define us2cts(us) (us >> presc_shift)   // microseconds to counts
+#include "timer1.h"
 
 Event::Event(uint64_t event_timestamp_us, void (*event_handler)(), uint64_t repeat_every_us, uint32_t N_times)
 {
@@ -66,28 +46,46 @@ void Event::poll()
     }
 }
 
-typedef struct
+void start_continuous_imaging()
 {
-    uint16_t cycle;
-    uint16_t n_cycles;
-} ISRcounter;
+    sys.n_acquired_frames = 0;
 
-ISRcounter t1ovflow;
-ISRcounter t1matchA;
-ISRcounter t1matchB;
-
-void start_timer1()
-{
-    // WGM mode 14 (fast PWM with ICR1 max)
-    TCCR1A = bit(WGM11);
-    TCCR1B = bit(WGM12) | bit(WGM13) | TCCR1B_bits;
-
-    // Set timing registers
-    ICR1 = UINT16_MAX;
-
-    // Enable interrupts for overflow, match A, and match B
-    TIMSK1 = bit(TOIE1) | bit(OCIE1A) | bit(OCIE1B);
+    timer1.pause();
+    // timings
+    timer1.set_ICR1(2500);  //(sys.interframe_time_us);
+    timer1.set_OCR1A(500);  //(min(sys.interframe_time_us >> 1, LASER_SHUTTER_DELAY));
+    timer1.set_OCR1B(1000); //(min((sys.interframe_time_us >> 1) + 100, LASER_SHUTTER_DELAY + 100));
+    // events
+    timer1.overfl_handler = []()
+    {
+        write_shutters(sys.shutter_active);
+    };
+    timer1.matchA_handler = camera_pin_up;
+    timer1.matchB_handler = []()
+    {
+        camera_pin_down();
+        if (++sys.n_acquired_frames > sys.n_frames && sys.n_frames > 0)
+        {
+            stop_acquisition();
+        }
+    };
+    timer1.run();
 }
+
+void stop_acquisition()
+{
+    sys.status = STATUS::IDLE;
+
+    timer1.overfl_handler = noop;
+    timer1.matchA_handler = noop;
+    timer1.matchB_handler = noop;
+
+    write_shutters(sys.shutter_idle);
+    camera_pin_down();
+    fluidic_pin_down();
+}
+
+/*
 
 void setup_timer1(uint32_t frame_length_us, uint32_t frame_matchA_us, uint32_t frame_matchB_us, bool reset)
 {
@@ -149,19 +147,7 @@ void setup_timer1(uint32_t frame_length_us, uint32_t frame_matchA_us, uint32_t f
 
 // --------------------------------------------------------------
 
-void start_continuous_imaging()
-{
-    sys.n_acquired_frames = 0;
 
-    // Start the frame we are going to discard later. Keep it short!
-    uint32_t discard_frame_length = min(sys.interframe_time_us, CAMERA_READOUT);
-    cli();
-    setup_timer1(discard_frame_length,
-                 0, // immediate camera trigger
-                 discard_frame_length >> 2);
-    sys.status = STATUS::CONTINUOUS_ACQ_PREP;
-    sei();
-}
 // --------------------------------------------------------------
 
 void frame_start_event()
@@ -240,37 +226,4 @@ void frame_MatchB_event()
         break;
     }
 }
-
-// --------------------------------------------------------------
-ISR(TIMER1_COMPA_vect) // interrupt 11
-{
-    // It's time to call interrupt handler
-    if (t1matchA.cycle++ == t1matchA.n_cycles)
-    {
-        frame_matchA_event();
-    }
-}
-
-ISR(TIMER1_COMPB_vect) // interrupt 12
-{
-    // It's time to call interrupt handler
-    if (t1matchB.cycle++ == t1matchB.n_cycles)
-    {
-        frame_MatchB_event();
-    }
-
-    // Increase system time by one timer cycle
-    sys.time += cts2us(ICR1);
-}
-
-ISR(TIMER1_OVF_vect) // interrupt 13
-{
-    // It's time to call interrupt handler
-    if (++t1ovflow.cycle >= t1ovflow.n_cycles)
-    {
-        frame_start_event();
-        t1ovflow.cycle = 0;
-        t1matchA.cycle = 0;
-        t1matchB.cycle = 0;
-    }
-}
+*/

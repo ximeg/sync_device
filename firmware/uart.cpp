@@ -2,6 +2,7 @@
 #include "utils.h"
 #include "triggers.h"
 #include "events.h"
+#include "timer1.h"
 
 /********************************
 COMMUNICATION PROTOCOL DEFINITION
@@ -152,10 +153,7 @@ void parse_UART_command()
 
     // Stop image acquisition
     case 'Q':
-        sys.status = STATUS::IDLE;
-        write_shutters(sys.shutter_idle);
-        camera_pin_down();
-        fluidic_pin_down();
+        stop_acquisition();
         send_ok();
         break;
 

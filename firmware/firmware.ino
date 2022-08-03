@@ -3,12 +3,12 @@
 #include "uart.h"        // setup_uart, parse_command, data definition
 #include "triggers.h"    // port config, open/close shutters, send triggers.
 #include "events.h"      // event loop - handling of event processing
+#include "timer1.h"      // Timer1 with extended dynamic range
 
 void setup()
 {
   setup_IO_ports();
   setup_UART();
-  start_timer1();
   // TODO: disable timer0? It might affect UART
 }
 

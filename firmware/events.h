@@ -18,7 +18,7 @@
 /**
  * @brief Configure and start timer 1 in the default mode. If system is IDLE, it is responsible only for the system time.
  */
-void start_timer1();
+// void start_timer1();
 
 /**
  * @brief Configure timer1 to control camera and laser shutter triggers with custom timings.
@@ -28,7 +28,7 @@ void start_timer1();
  * @param frame_matchB_us  Time point to call `frame_matchB_event()` once relative to the frame start
  * @param reset            Whether the timer should be reset (TCNT1 modified)
  */
-void setup_timer1(uint32_t frame_length_us, uint32_t frame_matchA_us, uint32_t frame_matchB_us, bool reset = true);
+// void setup_timer1(uint32_t frame_length_us, uint32_t frame_matchA_us, uint32_t frame_matchB_us, bool reset = true);
 
 /**
  * @brief A scheduled, potentially repetitive, event. Calls event handler when it's time to do so.
@@ -73,6 +73,7 @@ public:
 };
 
 void start_continuous_imaging();
+void stop_acquisition();
 
 inline Event event_fluidics_TTL_up = Event(0, fluidic_pin_up);
 inline Event event_fluidics_TTL_dn = Event(0, fluidic_pin_down);
