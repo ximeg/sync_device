@@ -12,9 +12,6 @@ void setup()
   // TODO: disable timer0? It might affect UART
 }
 
-Event event_fluidics_TTL_up = Event(0, fluidic_pin_up);
-Event event_fluidics_TTL_dn = Event(0, fluidic_pin_down);
-
 void loop()
 {
   poll_UART();

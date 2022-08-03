@@ -20,6 +20,13 @@
 
 #define VERSION "0.3.0\n"
 
+/***************
+TIMING CONSTANTS
+***************/
+
+#define LASER_SHUTTER_DELAY 1000 // us
+#define CAMERA_READOUT 12000     // us
+
 /****************************
 PINOUT AND WIRING DEFINITIONS
 ****************************/
@@ -55,11 +62,11 @@ static uint32_t t0; // current system time
 // System status
 enum STATUS
 {
-    IDLE = 0,             // Doing nothing, waiting for commands
-    CONTINUOUS_ACQ_START, // First frame that will be discarded
-    CONTINUOUS_ACQ,       // Running continuous acquisition
-    CONTINUOUS_ACQ_END,   // Waiting for camera readout at the end of continuous acquisition
-    STROBO_ACQ,           // Running stroboscopic acquisition (includes ALEX and timelapse)
+    IDLE = 0,            // Doing nothing, waiting for commands
+    CONTINUOUS_ACQ_PREP, // First frame that will be discarded
+    CONTINUOUS_ACQ,      // Running continuous acquisition
+    CONTINUOUS_ACQ_POST, // Waiting for camera readout at the end of continuous acquisition
+    STROBO_ACQ,          // Running stroboscopic acquisition (includes ALEX and timelapse)
 };
 
 inline struct SystemSettings

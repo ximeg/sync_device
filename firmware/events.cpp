@@ -1,5 +1,4 @@
 #include "events.h"
-#include "triggers.h"
 
 // Timer 1 prescaler configuration. See AtMega328 datasheet table 15-6
 #define PRESC64
@@ -90,7 +89,7 @@ void start_timer1()
     TIMSK1 = bit(TOIE1) | bit(OCIE1A) | bit(OCIE1B);
 }
 
-void setup_timer1(uint32_t frame_length_us, uint32_t frame_matchA_us, uint32_t frame_matchB_us)
+void setup_timer1(uint32_t frame_length_us, uint32_t frame_matchA_us, uint32_t frame_matchB_us, bool reset)
 {
     // We have three interrupts. Each of them must trigger a corresponding function
     // at most ONCE. However, the interrupts might occur more than once if the
@@ -137,35 +136,115 @@ void setup_timer1(uint32_t frame_length_us, uint32_t frame_matchA_us, uint32_t f
     OCR1B = (OCR1B >= ICR1) ? ICR1 - 1 : OCR1B;
     OCR1A = (OCR1A >= OCR1B) ? OCR1B - 1 : OCR1A;
 
-    // Update system time, then start timer a moment before overflow occurs
-    sys.time += TCNT1 + 2;
-    TCNT1 = ICR1 - 2;
+    if (reset)
+    {
+        // Update system time, then start timer a moment before overflow occurs
+        sys.time += TCNT1 + 2;
+        TCNT1 = ICR1 - 2;
+    }
 
     // Release the timer and let it run
     GTCCR = 0;
 }
 
+// --------------------------------------------------------------
+
+void start_continuous_imaging()
+{
+    sys.n_acquired_frames = 0;
+
+    // Start the frame we are going to discard later. Keep it short!
+    uint32_t discard_frame_length = min(sys.interframe_time_us, CAMERA_READOUT);
+    cli();
+    setup_timer1(discard_frame_length,
+                 0, // immediate camera trigger
+                 discard_frame_length >> 2);
+    sys.status = STATUS::CONTINUOUS_ACQ_PREP;
+    sei();
+}
+// --------------------------------------------------------------
+
 void frame_start_event()
 {
-    PINC = bit(PINC0);
+    switch (sys.status)
+    {
+    case STATUS::IDLE:
+        write_shutters(sys.shutter_idle);
+        camera_pin_down();
+        fluidic_pin_down();
+        break;
+
+    case STATUS::CONTINUOUS_ACQ_PREP:
+        break;
+
+    case STATUS::CONTINUOUS_ACQ:
+        write_shutters(sys.shutter_active);
+        break;
+
+    case STATUS::CONTINUOUS_ACQ_POST:
+        break;
+
+    default:
+        break;
+    }
 }
 
 void frame_matchA_event()
 {
+    if (sys.status == STATUS::IDLE)
+        return;
+
     camera_pin_up();
 }
 
 void frame_MatchB_event()
 {
-    camera_pin_down();
-}
-
-ISR(TIMER1_COMPA_vect) // interrupt 11
-{
     if (sys.status == STATUS::IDLE)
         return;
 
-    // Timer to call interrupt handler
+    camera_pin_down();
+
+    // evaluate situation and decide where to move next
+    switch (sys.status)
+    {
+    case STATUS::CONTINUOUS_ACQ_PREP: // this happens only once
+        cli();
+        setup_timer1(sys.interframe_time_us,
+                     LASER_SHUTTER_DELAY,
+                     LASER_SHUTTER_DELAY + (sys.interframe_time_us >> 2),
+                     false); // longer timer period without resetting
+        sys.status = STATUS::CONTINUOUS_ACQ;
+        sei();
+        break;
+
+    case STATUS::CONTINUOUS_ACQ:
+        if (++sys.n_acquired_frames > sys.n_frames && sys.n_frames > 0)
+        {
+            cli();
+            // one more short frame (discarded later)
+            uint32_t discard_frame_length = min(sys.interframe_time_us, CAMERA_READOUT) + LASER_SHUTTER_DELAY;
+            setup_timer1(discard_frame_length,
+                         LASER_SHUTTER_DELAY,
+                         LASER_SHUTTER_DELAY + (sys.interframe_time_us >> 2),
+                         false);                      // longer timer period without resetting
+            sys.status = STATUS::CONTINUOUS_ACQ_POST; // one more short frame
+            sei();
+        }
+        break;
+
+    case STATUS::CONTINUOUS_ACQ_POST:
+        sys.status = STATUS::IDLE; // IDLE forces shutters to close
+        break;
+
+    default:
+        break;
+    }
+}
+
+// --------------------------------------------------------------
+ISR(TIMER1_COMPA_vect) // interrupt 11
+{
+    // It's time to call interrupt handler
     if (t1matchA.cycle++ == t1matchA.n_cycles)
     {
         frame_matchA_event();
@@ -174,14 +253,10 @@ ISR(TIMER1_COMPA_vect) // interrupt 11
 
 ISR(TIMER1_COMPB_vect) // interrupt 12
 {
-    if (sys.status != STATUS::IDLE)
+    // It's time to call interrupt handler
+    if (t1matchB.cycle++ == t1matchB.n_cycles)
     {
-
-        // Timer to call interrupt handler
-        if (t1matchB.cycle++ == t1matchB.n_cycles)
-        {
-            frame_MatchB_event();
-        }
+        frame_MatchB_event();
     }
 
     // Increase system time by one timer cycle
@@ -190,13 +265,8 @@ ISR(TIMER1_COMPB_vect) // interrupt 12
 
 ISR(TIMER1_OVF_vect) // interrupt 13
 {
-    PINC = bit(PINC3);
-
-    if (sys.status == STATUS::IDLE)
-        return;
-
-    // Timer to call interrupt handler
-    if (++t1ovflow.cycle == t1ovflow.n_cycles)
+    // It's time to call interrupt handler
+    if (++t1ovflow.cycle >= t1ovflow.n_cycles)
     {
         frame_start_event();
         t1ovflow.cycle = 0;

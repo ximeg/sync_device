@@ -115,9 +115,6 @@ void parse_UART_command()
         if (sys.status == STATUS::IDLE)
             write_shutters(sys.shutter_idle);
 
-        if (sys.status == STATUS::CONTINUOUS_ACQ)
-            write_shutters(sys.shutter_active);
-
         send_ok();
         break;
 
@@ -129,14 +126,14 @@ void parse_UART_command()
             break;
         }
         sys.interframe_time_us = data.interframe_time_us;
-        setup_timer1(sys.interframe_time_us, sys.strobe_duration_us, sys.strobe_duration_us + (sys.interframe_time_us >> 3));
+        // setup_timer1(sys.interframe_time_us, sys.strobe_duration_us, sys.strobe_duration_us + (sys.interframe_time_us >> 3));
         send_ok();
         break;
 
     // Set strobe flash duration
     case 'E':
         sys.strobe_duration_us = data.strobe_duration_us;
-        setup_timer1(sys.interframe_time_us, sys.strobe_duration_us, sys.strobe_duration_us + (sys.interframe_time_us >> 3));
+        // setup_timer1(sys.interframe_time_us, sys.strobe_duration_us, sys.strobe_duration_us + (sys.interframe_time_us >> 3));
         send_ok();
         break;
 
@@ -148,14 +145,17 @@ void parse_UART_command()
 
     // Start continuous image acquisition
     case 'C':
-        sys.status = STATUS::CONTINUOUS_ACQ;
-        setup_timer1(sys.interframe_time_us, sys.strobe_duration_us, sys.strobe_duration_us + (sys.interframe_time_us >> 3));
+        sys.n_frames = data.n_frames;
+        start_continuous_imaging();
         send_ok();
         break;
 
     // Stop image acquisition
     case 'Q':
         sys.status = STATUS::IDLE;
+        write_shutters(sys.shutter_idle);
+        camera_pin_down();
+        fluidic_pin_down();
         send_ok();
         break;
 
