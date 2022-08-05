@@ -18,8 +18,8 @@ const uint8_t presc_shift = 6;
 const uint8_t TCCR1B_bits = bit(CS10) | bit(CS12);
 #endif // PRESC1024
 
-#define cts2us(cts) (cts << presc_shift) // counts to microseconds
-#define us2cts(us) (us >> presc_shift)   // microseconds to counts
+#define cts2us(cts) ((uint32_t)cts << presc_shift) // counts to microseconds
+#define us2cts(us) (us >> presc_shift)             // microseconds to counts
 
 void setup_timer1();
 void reset_timer1();
