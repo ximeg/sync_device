@@ -72,8 +72,8 @@ public:
     void poll();
 };
 
-void start_continuous_imaging();
-void stop_acquisition();
+// void start_continuous_imaging();
+// void stop_acquisition();
 
 inline Event event_fluidics_TTL_up = Event(0, fluidic_pin_up);
 inline Event event_fluidics_TTL_dn = Event(0, fluidic_pin_down);

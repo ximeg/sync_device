@@ -147,13 +147,13 @@ void parse_UART_command()
     // Start continuous image acquisition
     case 'C':
         sys.n_frames = data.n_frames;
-        start_continuous_imaging();
+        //        start_continuous_imaging();
         send_ok();
         break;
 
     // Stop image acquisition
     case 'Q':
-        stop_acquisition();
+        // stop_acquisition();
         send_ok();
         break;
 
