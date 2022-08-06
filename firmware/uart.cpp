@@ -147,14 +147,40 @@ void parse_UART_command()
     // Start continuous image acquisition
     case 'C':
         sys.n_frames = data.n_frames;
-        //        start_continuous_imaging();
+        {
+            uint32_t start = sys.time + 2500000;
+            uint32_t end = start + 20000;
+            uint32_t period = 250000;
+
+            event_fluidics_TTL_up.schedule(start, period, 0);
+            event_fluidics_TTL_dn.schedule(end, period, 0);
+        }
         send_ok();
+
+        set_timer1_values();
+        sys.status = STATUS::CONTINUOUS_ACQ;
+
         break;
 
     // Stop image acquisition
     case 'Q':
-        // stop_acquisition();
+        sys.status = STATUS::IDLE;
         send_ok();
+        break;
+
+    // Stop image acquisition
+    case '?':
+        Serial.print("ICR1=");
+        Serial.println(ICR1);
+        Serial.print("OCR1A=");
+        Serial.println(OCR1A);
+        Serial.print("OCR1B=");
+        Serial.println(OCR1B);
+        Serial.print("TCNT1=");
+        Serial.println(TCNT1);
+        Serial.print("sys.time=");
+        Serial.println((uint32_t)sys.time);
+        Serial.println("");
         break;
 
     default:

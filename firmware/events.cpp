@@ -46,6 +46,14 @@ void Event::poll()
     }
 }
 
+void poll_events()
+{
+    event_camera_TTL_up.poll();
+    event_camera_TTL_dn.poll();
+    event_fluidics_TTL_dn.poll();
+    event_fluidics_TTL_dn.poll();
+}
+
 /*
 void start_continuous_imaging()
 {

@@ -5,8 +5,8 @@
 
 #ifdef PRESC64
 const uint8_t presc_shift = 2;
-const uint8_t TCCR1B_bits = bit(CS10) | bit(CS11);
-#endif // PRESC64
+const uint8_t TCCR1B_bits = bit(CS10) | bit(CS11) | bit(CS12); // CS12 means EXTERNAL CLOCK!
+#endif                                                         // PRESC64
 
 #ifdef PRESC256
 const uint8_t presc_shift = 4;
@@ -23,3 +23,4 @@ const uint8_t TCCR1B_bits = bit(CS10) | bit(CS12);
 
 void setup_timer1();
 void reset_timer1();
+void set_timer1_values();

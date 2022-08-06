@@ -1,5 +1,6 @@
 {
     "board": "arduino:avr:uno",
     "port": "COM6",
-    "sketch": "firmware\\firmware.ino"
+    "sketch": "firmware\\firmware.ino",
+    "output": "../ArduinoOutput"
 }

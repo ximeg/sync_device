@@ -46,13 +46,13 @@
 class Event
 {
 private:
-    void (*event_handler)();
     uint64_t event_timestamp_us;
     uint64_t repeat_every_us;
     uint32_t N_times;
     uint32_t event_counter;
 
 public:
+    void (*event_handler)();
     Event(
         uint64_t event_timestamp_us,  // Timestamp when the event is supposed to happen. If 0, event is disabled
         void (*event_handler)(),      // Function to call when the event happens
@@ -78,6 +78,11 @@ public:
 inline Event event_fluidics_TTL_up = Event(0, fluidic_pin_up);
 inline Event event_fluidics_TTL_dn = Event(0, fluidic_pin_down);
 
-inline Event event_start_continuous_acq = Event(0, nullptr);
+inline Event event_camera_TTL_up = Event(0, camera_pin_up);
+inline Event event_camera_TTL_dn = Event(0, camera_pin_down);
+
+inline Event event_generic = Event(0, noop);
+
+void poll_events();
 
 #endif // EVENTS_H

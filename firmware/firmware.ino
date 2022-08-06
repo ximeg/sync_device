@@ -17,15 +17,7 @@ void loop()
 {
   poll_UART();
 
-  // Check and execute all scheduled events
-  if (sys.status != STATUS::IDLE)
-  {
-    // Fluidics trigger
-    event_fluidics_TTL_up.poll();
-    event_fluidics_TTL_dn.poll();
-
-    // event_start_imaging.poll();
-  }
+  poll_events();
 
   // flip event loop pin - allows to monitor how fast `loop()` runs
   EVENT_LOOP_PIN_FLIP = bit(EVENT_LOOP_PIN);
