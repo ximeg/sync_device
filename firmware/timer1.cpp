@@ -9,16 +9,35 @@ void continuous2idle()
         {
             if (sys.n_acquired_frames >= sys.n_frames) // We acquired enough frames!
             {
-                sys.n_acquired_frames = 0;
-                sys.status = STATUS::IDLE; // shutdown everything after the next cycle
-                Serial.println("DONE");
+                sys.status = STATUS::CONTINUOUS_ACQ_POST; // send final trigger to camera
+                return;
             }
         }
+    }
+
+    if (sys.status == STATUS::CONTINUOUS_ACQ_POST)
+    {
+        // This was the last frame
+        sys.status = STATUS::IDLE; // shutdown everything after the next cycle
+        Serial.println("DONE");
+        return;
+    }
+}
+
+void cont_prep2acq()
+{
+    if (sys.status == STATUS::CONTINUOUS_ACQ_PREP)
+    {
+        // Set camera trigger time points for sustained continuous acquisition
+        set_matchA_us(LASER_SHUTTER_DELAY);
+        set_matchB_us(LASER_SHUTTER_DELAY + min(sys.interframe_time_us >> 3, 100000));
+        sys.status = STATUS::CONTINUOUS_ACQ;
     }
 }
 
 void prepare_next_frame()
 {
+    cont_prep2acq();
     continuous2idle();
 
     //   normal2skip();
@@ -97,26 +116,28 @@ void set_matchB_us(uint32_t us)
 
 void T1_OVF_event()
 {
-    if (sys.status == STATUS::CONTINUOUS_ACQ_PREP)
+    switch (sys.status)
     {
-        set_interframe_duration_us(sys.interframe_time_us);
-        sys.status = STATUS::CONTINUOUS_ACQ;
-    }
-
-    if (sys.status == STATUS::CONTINUOUS_ACQ)
-    {
+    case STATUS::CONTINUOUS_ACQ:
         write_shutters(sys.shutter_active);
-    }
+        set_interframe_duration_us(sys.interframe_time_us);
+        break;
 
-    if (sys.status == STATUS::IDLE)
-    {
+    case STATUS::CONTINUOUS_ACQ_POST:
+        write_shutters(sys.shutter_active);
+        // wait for the camera to read out
+        set_interframe_duration_us(LASER_SHUTTER_DELAY + min(200000, sys.interframe_time_us));
+        break;
+
+    case STATUS::IDLE:
         write_shutters(sys.shutter_idle);
+        break;
     }
 }
 
 void T1_COMPA_event()
 {
-    if (sys.status == STATUS::CONTINUOUS_ACQ)
+    if (sys.status == STATUS::CONTINUOUS_ACQ || sys.status == STATUS::CONTINUOUS_ACQ_POST)
     {
         camera_pin_up();
         sys.n_acquired_frames++;

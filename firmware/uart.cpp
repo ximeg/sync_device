@@ -162,6 +162,7 @@ void parse_UART_command()
         // Setup prep frame
         {
             camera_pin_up(); // trigger the camera
+            sys.n_acquired_frames = 0;
 
             // disable interrupts
             uint8_t old_SREG = SREG;
@@ -169,8 +170,8 @@ void parse_UART_command()
 
             // configure timer 1
             set_interframe_duration_us(min(200000, sys.interframe_time_us));
-            set_matchA_us(LASER_SHUTTER_DELAY);
-            set_matchB_us(LASER_SHUTTER_DELAY + min(sys.interframe_time_us >> 3, 100000));
+            set_matchA_us(0);
+            set_matchB_us(min(sys.interframe_time_us >> 3, 1000));
 
             reset_timer1();
             SREG = old_SREG;
