@@ -14,9 +14,13 @@ def cu32(value):
 c = Serial("COM8", baudrate=2000000)
 
 
-def p(N):
-    c.write(cu32(N))
-    sleep(1.4e-6 * (N + 100))
+def q():
     avr.com.write(b"?xxxx")
     sleep(0.02)
     print(avr.com.read_all().decode())
+
+
+def p(N=1):
+    c.write(cu32(N))
+    sleep(1.4e-6 * (N + 100))
+    q()

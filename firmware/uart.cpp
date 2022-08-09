@@ -126,8 +126,9 @@ void parse_UART_command()
             send_err("ACQ error: interframe interval is too short");
             break;
         }
-        sys.interframe_time_us = data.interframe_time_us;
-        // setup_timer1(sys.interframe_time_us, sys.strobe_duration_us, sys.strobe_duration_us + (sys.interframe_time_us >> 3));
+
+        set_interframe_duration_us(data.interframe_time_us);
+
         send_ok();
         break;
 
@@ -170,17 +171,31 @@ void parse_UART_command()
 
     // Stop image acquisition
     case '?':
-        Serial.print("ICR1=");
-        Serial.println(ICR1);
-        Serial.print("OCR1A=");
-        Serial.println(OCR1A);
-        Serial.print("OCR1B=");
-        Serial.println(OCR1B);
-        Serial.print("TCNT1=");
-        Serial.println(TCNT1);
         Serial.print("sys.time=");
         Serial.println((uint32_t)sys.time);
+
+        Serial.print("TCNT1=");
+        Serial.println(TCNT1);
+
+        Serial.print("ICR1=");
+        Serial.println(ICR1);
+        Serial.print("t1.cycle=");
+        Serial.println(t1.cycle);
+        Serial.print("t1.N_OVF_cycles=");
+        Serial.println(t1.N_OVF_cycles);
+
+        Serial.print("OCR1A=");
+        Serial.println(OCR1A);
+        Serial.print("t1.N_matchA_cycles=");
+        Serial.println(t1.N_matchA_cycles);
+
+        Serial.print("OCR1B=");
+        Serial.println(OCR1B);
+        Serial.print("t1.N_matchB_cycles=");
+        Serial.println(t1.N_matchB_cycles);
+
         Serial.println("");
+
         break;
 
     default:

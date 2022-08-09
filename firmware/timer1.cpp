@@ -34,7 +34,7 @@ void setup_timer1()
 {
     // WGM mode 14 (fast PWM with ICR1 max)
     TCCR1A = bit(WGM11);
-    TCCR1B = bit(WGM12) | bit(WGM13) | TCCR1B_bits;
+    TCCR1B = bit(WGM12) | bit(WGM13) | TCCR1B_prescaler_bits;
 
     // Use the max period by default
     ICR1 = UINT16_MAX;
@@ -76,14 +76,48 @@ void set_timer1_values()
     GTCCR = 0;
 }
 
+T1 t1 = T1{7, 8, 9, 10};
+
+void set_interframe_duration_us(uint32_t us)
+{
+    uint32_t cts = us2cts(us);
+
+    t1.cycle = 0;
+    t1.N_OVF_cycles = 1;
+    // We divide required #counts in half until if fits into 16bit
+    while (cts >= UINT16_MAX)
+    {
+        cts >>= 1;             // divide in half
+        t1.N_OVF_cycles <<= 1; // double number of cycles
+        Serial.print("t1.N_OVF_cycles=");
+        Serial.println(t1.N_OVF_cycles);
+    }
+
+    ICR1 = cts - 1;
+}
+
+void set_matchA_us(uint32_t us)
+{
+    uint32_t cts = us2cts(us);
+
+    t1.N_matchA_cycles = cts / (ICR1 + 1);
+
+    OCR1A = cts % ICR1;
+}
+
+void set_matchB_us(uint32_t us)
+{
+    uint32_t cts = us2cts(us);
+
+    t1.N_matchB_cycles = cts / (ICR1 + 1);
+
+    OCR1B = cts % ICR1;
+}
+
 // --------------------------------------------------------------
 
-// interrupt 13, first event during the frame
-ISR(TIMER1_OVF_vect)
+void T1_OVF_event()
 {
-    // Update system time
-    sys.time += cts2us(ICR1);
-
     if (sys.status == STATUS::CONTINUOUS_ACQ)
     {
         write_shutters(sys.shutter_active);
@@ -95,8 +129,7 @@ ISR(TIMER1_OVF_vect)
     }
 }
 
-// interrupt 11, second event during the frame
-ISR(TIMER1_COMPA_vect)
+void T1_COMPA_event()
 {
     if (sys.status == STATUS::CONTINUOUS_ACQ)
     {
@@ -105,11 +138,45 @@ ISR(TIMER1_COMPA_vect)
     }
 }
 
-// interrupt 12, third event during the frame
-ISR(TIMER1_COMPB_vect)
+void T1_COMPB_event()
 {
     camera_pin_down();
 
     // Decide what to do during the next timer cycle.
     prepare_next_frame();
+}
+
+// ---------------------------
+
+// interrupt 13, first event during the frame
+ISR(TIMER1_OVF_vect)
+{
+    // Update system time
+    sys.time += cts2us(ICR1);
+
+    t1.cycle++;
+    if (t1.cycle >= t1.N_OVF_cycles)
+    {
+        // Time to call interrupt handler
+        T1_OVF_event();
+        t1.cycle = 0;
+    }
+}
+
+// interrupt 11, second event during the frame
+ISR(TIMER1_COMPA_vect)
+{
+    if (t1.cycle == t1.N_matchA_cycles)
+    {
+        T1_COMPA_event();
+    }
+}
+
+// interrupt 12, third event during the frame
+ISR(TIMER1_COMPB_vect)
+{
+    if (t1.cycle == t1.N_matchB_cycles)
+    {
+        T1_COMPB_event();
+    }
 }
