@@ -36,8 +36,10 @@ void setup_timer1()
     TCCR1A = bit(WGM11);
     TCCR1B = bit(WGM12) | bit(WGM13) | TCCR1B_prescaler_bits;
 
-    // Use the max period by default
-    ICR1 = UINT16_MAX;
+    // Default settings
+    set_interframe_duration_us(10000);
+    set_matchA_us(LASER_SHUTTER_DELAY);
+    set_matchB_us(LASER_SHUTTER_DELAY + 1000);
 
     // Enable interrupts for overflow, match A, and match B
     TIMSK1 = bit(TOIE1) | bit(OCIE1A) | bit(OCIE1B);
@@ -76,8 +78,6 @@ void set_timer1_values()
     GTCCR = 0;
 }
 
-T1 t1 = T1{7, 8, 9, 10};
-
 void set_interframe_duration_us(uint32_t us)
 {
     uint32_t cts = us2cts(us);
@@ -89,8 +89,6 @@ void set_interframe_duration_us(uint32_t us)
     {
         cts >>= 1;             // divide in half
         t1.N_OVF_cycles <<= 1; // double number of cycles
-        Serial.print("t1.N_OVF_cycles=");
-        Serial.println(t1.N_OVF_cycles);
     }
 
     ICR1 = cts - 1;

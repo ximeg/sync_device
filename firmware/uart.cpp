@@ -157,10 +157,7 @@ void parse_UART_command()
             event_fluidics_TTL_dn.schedule(end, period, 0);
         }
         send_ok();
-
-        set_timer1_values();
         sys.status = STATUS::CONTINUOUS_ACQ;
-
         break;
 
     // Stop image acquisition
