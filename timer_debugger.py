@@ -2,6 +2,7 @@ from time import sleep
 from serial import Serial
 from ctypes import c_uint32
 from avrpy.mega328P import Mega328P
+from avrpy.avr_bits import *
 
 avr = Mega328P("COM6")
 
@@ -24,3 +25,11 @@ def p(N=1):
     c.write(cu32(N))
     sleep(1.4e-6 * (N + 100))
     q()
+
+
+def run():
+    avr.TCCR1B &= ~CS12
+
+
+def pause():
+    avr.TCCR1B |= CS12
