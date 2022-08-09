@@ -57,6 +57,8 @@ void setup_timer1()
 
     // Default settings
     set_interframe_duration_us(sys.interframe_time_us);
+
+    // TODO: This will fail if events A or B are beyond the frame (high speed imaging)!!!!!!!!
     set_matchA_us(LASER_SHUTTER_DELAY);
     set_matchB_us(LASER_SHUTTER_DELAY + 1000);
 
