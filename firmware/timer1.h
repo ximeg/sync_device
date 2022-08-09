@@ -23,7 +23,6 @@ const uint8_t TCCR1B_prescaler_bits = bit(CS10) | bit(CS12);
 
 void setup_timer1();
 void reset_timer1();
-void set_timer1_values();
 
 inline volatile struct T1
 {

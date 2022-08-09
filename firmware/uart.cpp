@@ -127,7 +127,8 @@ void parse_UART_command()
             break;
         }
 
-        set_interframe_duration_us(data.interframe_time_us);
+        sys.interframe_time_us = data.interframe_time_us;
+        set_interframe_duration_us(data.interframe_time_us); // TODO: check that OCR1A OCR1B are still below ICR1!
 
         send_ok();
         break;
@@ -157,7 +158,25 @@ void parse_UART_command()
             event_fluidics_TTL_dn.schedule(end, period, 0);
         }
         send_ok();
-        sys.status = STATUS::CONTINUOUS_ACQ;
+
+        // Setup prep frame
+        {
+            camera_pin_up(); // trigger the camera
+
+            // disable interrupts
+            uint8_t old_SREG = SREG;
+            cli();
+
+            // configure timer 1
+            set_interframe_duration_us(min(200000, sys.interframe_time_us));
+            set_matchA_us(LASER_SHUTTER_DELAY);
+            set_matchB_us(LASER_SHUTTER_DELAY + min(sys.interframe_time_us >> 3, 100000));
+
+            reset_timer1();
+            SREG = old_SREG;
+        }
+
+        sys.status = STATUS::CONTINUOUS_ACQ_PREP;
         break;
 
     // Stop image acquisition
@@ -168,6 +187,9 @@ void parse_UART_command()
 
     // Stop image acquisition
     case '?':
+        Serial.print("sys.status=");
+        Serial.println(sys.status);
+
         Serial.print("sys.time=");
         Serial.println((uint32_t)sys.time);
 

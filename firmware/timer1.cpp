@@ -37,7 +37,7 @@ void setup_timer1()
     TCCR1B = bit(WGM12) | bit(WGM13) | TCCR1B_prescaler_bits;
 
     // Default settings
-    set_interframe_duration_us(10000);
+    set_interframe_duration_us(sys.interframe_time_us);
     set_matchA_us(LASER_SHUTTER_DELAY);
     set_matchB_us(LASER_SHUTTER_DELAY + 1000);
 
@@ -50,32 +50,13 @@ void reset_timer1()
     uint8_t old_SREG = SREG;
     cli();
     sys.time += TCNT1;
-    TCNT1 = 0;
-    SREG = old_SREG;
-}
-
-void set_timer1_values()
-{
-    // Set timer period to requested value, and at least N counts
-    ICR1 = max(us2cts(sys.interframe_time_us), 5);
-
-    // Set delay between shutter and camera
-    OCR1A = us2cts(LASER_SHUTTER_DELAY);
-    OCR1A = min(OCR1A, ICR1 - 2); // Sanity check: make sure OCR1A is lower than ICR1
-
-    // 12.5% duty cycle, at least 1 count, at most 10ms
-    OCR1B = OCR1A + max(min(ICR1 >> 3, us2cts(10000)), 1);
-    OCR1B = min(OCR1B, ICR1 - 1); // Sanity check: make sure OCR1B is lower than ICR1
 
     // Clear interrupt flags
     TIFR1 = 0xFF;
 
-    // Enable interrupts for overflow, match A, and match B
-    TIMSK1 = bit(TOIE1) | bit(OCIE1A) | bit(OCIE1B);
-
-    // Reset the timer and make sure it is not paused
-    TCNT1 = ICR1 - 2;
-    GTCCR = 0;
+    // Start counting from 0
+    TCNT1 = 0;
+    SREG = old_SREG;
 }
 
 void set_interframe_duration_us(uint32_t us)
@@ -116,6 +97,12 @@ void set_matchB_us(uint32_t us)
 
 void T1_OVF_event()
 {
+    if (sys.status == STATUS::CONTINUOUS_ACQ_PREP)
+    {
+        set_interframe_duration_us(sys.interframe_time_us);
+        sys.status = STATUS::CONTINUOUS_ACQ;
+    }
+
     if (sys.status == STATUS::CONTINUOUS_ACQ)
     {
         write_shutters(sys.shutter_active);
