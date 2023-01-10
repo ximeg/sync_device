@@ -18,7 +18,7 @@
 int main(void)
 {
     init_IO();
-	setup_timer1();
+	init_timer1();
 	sei();
 
     while (1) 

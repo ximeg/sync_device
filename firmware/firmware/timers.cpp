@@ -6,7 +6,7 @@
 #define SET_CAM_FALLING_EDGE(us) (OCR1C = us2cts(us))
 #define SET_LASER_FALLING_EDGE(us) (OCR1B = us2cts(us))
 
-void setup_timer1()
+void init_timer1()
 {
 	// Default settings
 	SET_FRAME_DURATION(9000);

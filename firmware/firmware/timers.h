@@ -33,6 +33,6 @@ const uint8_t TCCR1B_prescaler_bits = bit(CS10) | bit(CS12);
 #define us2cts(us) (us >> presc_shift)             // microseconds to counts
 #endif // PRESC8
 
-void setup_timer1();
+void init_timer1();
 void reset_timer1();
 
