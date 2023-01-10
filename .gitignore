@@ -1,3 +1,7 @@
+# C++ compiled projects
+Debug/
+Release/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

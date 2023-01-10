@@ -11,6 +11,8 @@
 #pragma once
 
 #include <avr/io.h>
+#include <avr/interrupt.h>
+
 #define bit(b) (1UL << (b))
 
 /****************************
