@@ -3,27 +3,29 @@ firmware.elf:     file format elf32-avr
 
 Sections:
 Idx Name          Size      VMA       LMA       File off  Algn
-  0 .data         00000000  00800200  00800200  00000154  2**0
+  0 .data         00000000  00800200  00800200  000001be  2**0
                   CONTENTS, ALLOC, LOAD, DATA
-  1 .text         00000100  00000000  00000000  00000054  2**1
+  1 .text         0000016a  00000000  00000000  00000054  2**1
                   CONTENTS, ALLOC, LOAD, READONLY, CODE
-  2 .comment      00000030  00000000  00000000  00000154  2**0
+  2 .comment      00000030  00000000  00000000  000001be  2**0
                   CONTENTS, READONLY
-  3 .note.gnu.avr.deviceinfo 00000040  00000000  00000000  00000184  2**2
+  3 .note.gnu.avr.deviceinfo 00000040  00000000  00000000  000001f0  2**2
                   CONTENTS, READONLY
-  4 .debug_aranges 00000020  00000000  00000000  000001c4  2**0
+  4 .debug_aranges 00000068  00000000  00000000  00000230  2**0
                   CONTENTS, READONLY, DEBUGGING
-  5 .debug_info   00000c38  00000000  00000000  000001e4  2**0
+  5 .debug_info   00000ef0  00000000  00000000  00000298  2**0
                   CONTENTS, READONLY, DEBUGGING
-  6 .debug_abbrev 00000b61  00000000  00000000  00000e1c  2**0
+  6 .debug_abbrev 00000c51  00000000  00000000  00001188  2**0
                   CONTENTS, READONLY, DEBUGGING
-  7 .debug_line   00000235  00000000  00000000  0000197d  2**0
+  7 .debug_line   0000044e  00000000  00000000  00001dd9  2**0
                   CONTENTS, READONLY, DEBUGGING
-  8 .debug_frame  00000024  00000000  00000000  00001bb4  2**2
+  8 .debug_frame  00000098  00000000  00000000  00002228  2**2
                   CONTENTS, READONLY, DEBUGGING
-  9 .debug_str    00000554  00000000  00000000  00001bd8  2**0
+  9 .debug_str    0000068f  00000000  00000000  000022c0  2**0
                   CONTENTS, READONLY, DEBUGGING
- 10 .debug_ranges 00000010  00000000  00000000  0000212c  2**0
+ 10 .debug_loc    00000021  00000000  00000000  0000294f  2**0
+                  CONTENTS, READONLY, DEBUGGING
+ 11 .debug_ranges 00000048  00000000  00000000  00002970  2**0
                   CONTENTS, READONLY, DEBUGGING
 
 Disassembly of section .text:
@@ -154,22 +156,134 @@ Disassembly of section .text:
   f0:	00 e0       	ldi	r16, 0x00	; 0
   f2:	0c bf       	out	0x3c, r16	; 60
   f4:	02 d0       	rcall	.+4      	; 0xfa <main>
-  f6:	02 c0       	rjmp	.+4      	; 0xfc <_exit>
+  f6:	37 c0       	rjmp	.+110    	; 0x166 <_exit>
 
 000000f8 <__bad_interrupt>:
   f8:	83 cf       	rjmp	.-250    	; 0x0 <__vectors>
 
 000000fa <main>:
-
-#include <avr/io.h>
-
+#include "sys_globals.h"
+#include "triggers.h"
 
 int main(void)
 {
-  fa:	ff cf       	rjmp	.-2      	; 0xfa <main>
+    setup_IO_ports();
+  fa:	0d d0       	rcall	.+26     	; 0x116 <_Z14setup_IO_portsv>
+    while (1) 
+    {
+		camera_pin_up();
+  fc:	1f d0       	rcall	.+62     	; 0x13c <_Z13camera_pin_upv>
+		fluidic_pin_up();
+  fe:	26 d0       	rcall	.+76     	; 0x14c <_Z14fluidic_pin_upv>
+		write_shutters(0x0f);
+ 100:	8f e0       	ldi	r24, 0x0F	; 15
+ 102:	2c d0       	rcall	.+88     	; 0x15c <_Z14write_shuttersh>
+		write_shutters(0x03);
+ 104:	83 e0       	ldi	r24, 0x03	; 3
+ 106:	2a d0       	rcall	.+84     	; 0x15c <_Z14write_shuttersh>
+		write_shutters(0x07);
+ 108:	87 e0       	ldi	r24, 0x07	; 7
+ 10a:	28 d0       	rcall	.+80     	; 0x15c <_Z14write_shuttersh>
+		write_shutters(0x0a);
+ 10c:	8a e0       	ldi	r24, 0x0A	; 10
+ 10e:	26 d0       	rcall	.+76     	; 0x15c <_Z14write_shuttersh>
+ 110:	19 d0       	rcall	.+50     	; 0x144 <_Z15camera_pin_downv>
+		camera_pin_down();
+ 112:	20 d0       	rcall	.+64     	; 0x154 <_Z16fluidic_pin_downv>
+ 114:	f3 cf       	rjmp	.-26     	; 0xfc <main+0x2>
 
-000000fc <_exit>:
-  fc:	f8 94       	cli
+00000116 <_Z14setup_IO_portsv>:
+		fluidic_pin_down();
+ 116:	8d b1       	in	r24, 0x0d	; 13
+ 118:	80 61       	ori	r24, 0x10	; 16
+ 11a:	8d b9       	out	0x0d, r24	; 13
 
-000000fe <__stop_program>:
-  fe:	ff cf       	rjmp	.-2      	; 0xfe <__stop_program>
+// Configure output ports (data direction registers and default values)
+void setup_IO_ports()
+{
+	FLUIDIC_DDR |= bit(FLUIDIC_PIN);
+	FLUIDIC_PORT &= ~bit(FLUIDIC_PIN);
+ 11c:	8e b1       	in	r24, 0x0e	; 14
+ 11e:	8f 7e       	andi	r24, 0xEF	; 239
+ 120:	8e b9       	out	0x0e, r24	; 14
+
+	CAMERA_DDR |= bit(CAMERA_PIN);
+ 122:	84 b1       	in	r24, 0x04	; 4
+ 124:	80 68       	ori	r24, 0x80	; 128
+ 126:	84 b9       	out	0x04, r24	; 4
+	CAMERA_PORT &= ~bit(CAMERA_PIN);
+ 128:	85 b1       	in	r24, 0x05	; 5
+ 12a:	8f 77       	andi	r24, 0x7F	; 127
+ 12c:	85 b9       	out	0x05, r24	; 5
+
+	SHUTTERS_DDR |= SHUTTERS_MASK;
+ 12e:	80 b3       	in	r24, 0x10	; 16
+ 130:	8f 60       	ori	r24, 0x0F	; 15
+ 132:	80 bb       	out	0x10, r24	; 16
+	SHUTTERS_PORT &= ~SHUTTERS_MASK;
+ 134:	81 b3       	in	r24, 0x11	; 17
+ 136:	80 7f       	andi	r24, 0xF0	; 240
+ 138:	81 bb       	out	0x11, r24	; 17
+ 13a:	08 95       	ret
+
+0000013c <_Z13camera_pin_upv>:
+}
+
+void camera_pin_up()
+{
+	CAMERA_PORT |= bit(CAMERA_PIN);
+ 13c:	85 b1       	in	r24, 0x05	; 5
+ 13e:	80 68       	ori	r24, 0x80	; 128
+ 140:	85 b9       	out	0x05, r24	; 5
+ 142:	08 95       	ret
+
+00000144 <_Z15camera_pin_downv>:
+}
+
+void camera_pin_down()
+{
+	CAMERA_PORT &= ~bit(CAMERA_PIN);
+ 144:	85 b1       	in	r24, 0x05	; 5
+ 146:	8f 77       	andi	r24, 0x7F	; 127
+ 148:	85 b9       	out	0x05, r24	; 5
+ 14a:	08 95       	ret
+
+0000014c <_Z14fluidic_pin_upv>:
+}
+
+void fluidic_pin_up()
+{
+	FLUIDIC_PORT |= bit(FLUIDIC_PIN);
+ 14c:	8e b1       	in	r24, 0x0e	; 14
+ 14e:	80 61       	ori	r24, 0x10	; 16
+ 150:	8e b9       	out	0x0e, r24	; 14
+ 152:	08 95       	ret
+
+00000154 <_Z16fluidic_pin_downv>:
+}
+
+void fluidic_pin_down()
+{
+	FLUIDIC_PORT &= ~bit(FLUIDIC_PIN);
+ 154:	8e b1       	in	r24, 0x0e	; 14
+ 156:	8f 7e       	andi	r24, 0xEF	; 239
+ 158:	8e b9       	out	0x0e, r24	; 14
+ 15a:	08 95       	ret
+
+0000015c <_Z14write_shuttersh>:
+}
+
+void write_shutters(uint8_t value)
+{
+	SHUTTERS_PORT = (SHUTTERS_PORT & ~SHUTTERS_MASK) | value;
+ 15c:	91 b3       	in	r25, 0x11	; 17
+ 15e:	90 7f       	andi	r25, 0xF0	; 240
+ 160:	89 2b       	or	r24, r25
+ 162:	81 bb       	out	0x11, r24	; 17
+ 164:	08 95       	ret
+
+00000166 <_exit>:
+ 166:	f8 94       	cli
+
+00000168 <__stop_program>:
+ 168:	ff cf       	rjmp	.-2      	; 0x168 <__stop_program>
