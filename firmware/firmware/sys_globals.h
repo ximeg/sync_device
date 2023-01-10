@@ -12,8 +12,18 @@
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
+//#include "sys_time.h"
 
-#define bit(b) (1UL << (b))
+
+/*********************************
+HELPFUL BIT MANIPULATION FUNCTIONS
+*********************************/
+#define bit(b)                         (1UL << (b))
+#define bitRead(value, bit)            (((value) >> (bit)) & 0x01)
+#define bitSet(value, bit)             ((value) |= (1UL << (bit)))
+#define bitClear(value, bit)           ((value) &= ~(1UL << (bit)))
+#define bitToggle(value, bit)          ((value) ^= (1UL << (bit)))
+#define bitWrite(value, bit, bitvalue) ((bitvalue) ? bitSet(value, bit) : bitClear(value, bit))
 
 /****************************
 PINOUT AND WIRING DEFINITIONS

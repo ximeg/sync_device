@@ -4,7 +4,7 @@
 // Configure output ports (data direction registers and default values)
 void setup_IO_ports()
 {
-	FLUIDIC_DDR |= bit(FLUIDIC_PIN);
+	bitSet(FLUIDIC_DDR, FLUIDIC_PIN);
 	FLUIDIC_PORT &= ~bit(FLUIDIC_PIN);
 
 	CAMERA_DDR |= bit(CAMERA_PIN);
