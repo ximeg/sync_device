@@ -13,6 +13,7 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 //#include "sys_time.h"
+#include <Arduino.h>
 
 
 /*********************************

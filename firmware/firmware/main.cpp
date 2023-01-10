@@ -14,16 +14,15 @@
 #include "triggers.h"
 #include "timers.h"
 
-
 int main(void)
 {
     init_IO();
 	init_timer1();
 	sei();
-
+	
     while (1) 
     {
-		;
+		delayMicroseconds(10);
     }
 }
 

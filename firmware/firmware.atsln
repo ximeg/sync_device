@@ -4,6 +4,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 14.0.23107.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{E66E83B9-2572-4076-B26E-6BE79FF3018A}") = "firmware", "firmware\firmware.cppproj", "{DCE6C7E3-EE26-4D79-826B-08594B9AD897}"
+	ProjectSection(ProjectDependencies) = postProject
+		{5BC98A55-5BC3-49EE-8687-01C48E8DFA0E} = {5BC98A55-5BC3-49EE-8687-01C48E8DFA0E}
+	EndProjectSection
+EndProject
+Project("{E66E83B9-2572-4076-B26E-6BE79FF3018A}") = "ArduinoCore", "ArduinoCore\ArduinoCore.cppproj", "{5BC98A55-5BC3-49EE-8687-01C48E8DFA0E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +20,10 @@ Global
 		{DCE6C7E3-EE26-4D79-826B-08594B9AD897}.Debug|AVR.Build.0 = Debug|AVR
 		{DCE6C7E3-EE26-4D79-826B-08594B9AD897}.Release|AVR.ActiveCfg = Release|AVR
 		{DCE6C7E3-EE26-4D79-826B-08594B9AD897}.Release|AVR.Build.0 = Release|AVR
+		{5BC98A55-5BC3-49EE-8687-01C48E8DFA0E}.Debug|AVR.ActiveCfg = Debug|AVR
+		{5BC98A55-5BC3-49EE-8687-01C48E8DFA0E}.Debug|AVR.Build.0 = Debug|AVR
+		{5BC98A55-5BC3-49EE-8687-01C48E8DFA0E}.Release|AVR.ActiveCfg = Release|AVR
+		{5BC98A55-5BC3-49EE-8687-01C48E8DFA0E}.Release|AVR.Build.0 = Release|AVR
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
