@@ -1,13 +1,18 @@
 #include "timers.h"
 #include "triggers.h"
 
+#define SET_FRAME_DURATION(us) (ICR1 = us2cts(us) - 1)
+#define SET_CAM_RAISING_EDGE(us) (OCR1A = us2cts(us))
+#define SET_CAM_FALLING_EDGE(us) (OCR1C = us2cts(us))
+#define SET_LASER_FALLING_EDGE(us) (OCR1B = us2cts(us))
+
 void setup_timer1()
 {
 	// Default settings
-	ICR1 = us2cts(1000) - 1;
-	OCR1A = us2cts(40);
-	OCR1B = us2cts(100);
-	OCR1C = us2cts(200);
+	SET_FRAME_DURATION(9000);
+	SET_CAM_RAISING_EDGE(1000);
+	SET_LASER_FALLING_EDGE(2000);
+	SET_CAM_FALLING_EDGE(4000);
 	TCNT1 = ICR1 - 1;
 		
 	// WGM mode 14 (fast PWM with ICR1 max)

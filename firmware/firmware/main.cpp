@@ -20,6 +20,7 @@ int main(void)
     setup_IO_ports();
 	setup_timer1();
 	sei();
+
     while (1) 
     {
 		;
