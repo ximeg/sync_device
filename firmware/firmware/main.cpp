@@ -17,7 +17,7 @@
 
 int main(void)
 {
-    setup_IO_ports();
+    init_IO();
 	setup_timer1();
 	sei();
 

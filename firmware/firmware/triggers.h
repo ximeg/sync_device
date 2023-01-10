@@ -12,13 +12,6 @@
 
 #include "sys_globals.h"
 
-void setup_IO_ports();
-
-void camera_pin_up();
-void camera_pin_down();
-
-void fluidic_pin_up();
-void fluidic_pin_down();
-
+void init_IO();
 void write_shutters(uint8_t value);
 

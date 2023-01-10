@@ -14,7 +14,7 @@ void setup_timer1()
 	SET_LASER_FALLING_EDGE(2000);
 	SET_CAM_FALLING_EDGE(4000);
 	TCNT1 = ICR1 - 1;
-		
+
 	// WGM mode 14 (fast PWM with ICR1 max)
 	TCCR1A = bit(WGM11);
 	TCCR1B = bit(WGM12) | bit(WGM13) | TCCR1B_prescaler_bits;
@@ -37,7 +37,7 @@ ISR(TIMER1_OVF_vect)
 
 ISR(TIMER1_COMPA_vect)
 {
-	camera_pin_up();
+	bitSet(CAMERA_PORT, CAMERA_PIN);
 }
 
 ISR(TIMER1_COMPB_vect)
@@ -47,5 +47,5 @@ ISR(TIMER1_COMPB_vect)
 
 ISR(TIMER1_COMPC_vect)
 {
-	camera_pin_down();
+	bitClear(CAMERA_PORT, CAMERA_PIN);
 }
