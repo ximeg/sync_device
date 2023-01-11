@@ -43,7 +43,7 @@ void start_acq()
 	bitClear(GTCCR, TSM);
 	
 	// open laser shutters
-	write_shutters(0x0f);
+	lasers_on();
 
 }
 
@@ -65,7 +65,7 @@ ISR(TIMER1_COMPA_vect)
 
 ISR(TIMER1_COMPB_vect)
 {
-	write_shutters(0x00);
+	lasers_off();
 }
 
 ISR(TIMER1_COMPC_vect)
@@ -85,7 +85,7 @@ ISR(TIMER3_OVF_vect)
 		TCCR1B |= TCCR1B_prescaler_bits;
 	
 		// Open laser shutters
-		write_shutters(0x0f);
+		lasers_on();
 
 		t3_cycle = 0;
 	}

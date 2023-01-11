@@ -13,5 +13,6 @@
 #include "sys_globals.h"
 
 void init_IO();
-void write_shutters(uint8_t value);
 
+void lasers_on();
+void lasers_off();

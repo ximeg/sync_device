@@ -15,7 +15,12 @@ void init_IO()
 }
 
 
-void write_shutters(uint8_t value)
+void lasers_on()
 {
-	SHUTTERS_PORT = (SHUTTERS_PORT & ~SHUTTERS_MASK) | value;
+	SHUTTERS_PORT |= sys.active_lasers & SHUTTERS_MASK;
+}
+
+void lasers_off()
+{
+	SHUTTERS_PORT &= ~SHUTTERS_MASK;
 }
