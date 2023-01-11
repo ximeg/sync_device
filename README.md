@@ -5,6 +5,24 @@ The firmware is developed using Microchip Studio.
 I'm going to use Mega2560 microcontroller (Arduino Mega v3 board) that has four 16bit timers for generation of precise TTL signals.
 
 
+## How it works
+
+### System states
+
+The system can be in the following states:
+
+ * IDLE - no signals. Timers 1 and 3 are not running
+ * Stroboscopic imaging (potentially with ALEX). Tell the system what lasers to use and how many frames to acquire. QUESTION: do we need stroboscopic with 1+ lasers at the same time (no alternation)??
+ * Continuous imaging (NOT IMPLEMENTED). Laser(s) stay on all the time, we just trigger the camera. First frame is at most 200ms long (throw away frame).
+
+
+### Communication protocol (NOT IMPLEMENTED)
+
+ Each data packet is 5 byte long, which should be transmitted together without big delays between them. The first byte is the command, other 4 bytes are arguments (usually in uint32 format). Most of the arguments map directly to the `SystemSettings` structure of the microcontroller firmware to modify the relevant fields. 
+
+
+
+
 ## Installation
 
 You'll need Microchip Studio (free) to build the firmware. Open the solution file and build the release target. To upload the firmaware to the microcontroller,
