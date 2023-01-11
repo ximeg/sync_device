@@ -95,15 +95,18 @@ ISR(TIMER3_OVF_vect)
 	t3_cycle++;
 	if (t3_cycle >= t3_N_OVF_cycles)
 	{
-		// Reset the prescaler to sync timers
-		GTCCR |= PSRSYNC;
+		if ((++sys.n_acquired_frames < sys.n_frames) || (sys.n_frames == 0))
+		{
+			// Reset the prescaler to sync timers
+			GTCCR |= PSRSYNC;
 	
-		// Start timer 1
-		TCCR1B |= TCCR1B_prescaler_bits;
+			// Start timer 1
+			TCCR1B |= TCCR1B_prescaler_bits;
 	
-		// Open laser shutters
-		lasers_on();
+			// Open laser shutters
+			lasers_on();
 
-		t3_cycle = 0;
+			t3_cycle = 0;
+		}
 	}
 }

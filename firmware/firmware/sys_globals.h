@@ -64,7 +64,7 @@ typedef struct SystemSettings
 	uint32_t exp_time_us;       // Exposure time = duration of laser shutter being open
 	uint32_t acq_period_us;     // Time period between subsequent frames or bursts of frames (ALEX)
 	// n_frames_per_burst? // n_bursts??
-	uint32_t n_frames;          // 0 means unlimited
+	uint32_t n_frames;          // 0 means unlimited. In ALEX, it means number of bursts
 	uint32_t n_acquired_frames; // Total number of acquired frames (pulses to camera)
 	uint8_t  current_laser;     // Bit pattern indicating currently active laser
 	uint8_t  lasers_in_use;     // Bit pattern to control laser shutters. Bit 0: Cy2, bit 3: Cy7
