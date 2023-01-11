@@ -47,3 +47,12 @@ const uint8_t FLUIDIC_PIN = PINE4; // aka Arduino pin 2
 const uint8_t CAMERA_PIN = PINB7; // aka Arduino pin 13
 #define CAMERA_PORT PORTB
 #define CAMERA_DDR DDRB
+
+
+/**********************
+SYSTEM STATUS VARIABLES
+**********************/
+extern uint32_t t0; // current system time
+extern uint32_t interframe_time_us;
+extern uint32_t n_frames;
+extern uint32_t n_acquired_frames; // Total number of acquired frames (pulses to camera)
