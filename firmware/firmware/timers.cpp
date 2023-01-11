@@ -4,6 +4,7 @@
 
 static uint16_t t3_cycle = 0;
 static uint16_t t3_N_OVF_cycles = 1;
+static bool last_burst_frame = false;
 
 void set_timer3_period(uint32_t us)
 {
@@ -22,9 +23,9 @@ void set_timer3_period(uint32_t us)
 void start_acq()
 {
 	// Set timing intervals for TC1
-	OCR1A = us2cts(sys.shutter_delay_us);
+	OCR1A = us2cts((sys.shutter_delay_us + 1));
 	OCR1B = us2cts(sys.exp_time_us);
-	OCR1C = us2cts(sys.exp_time_us) + OCR1A;
+	OCR1C = us2cts((sys.exp_time_us - 2)) + OCR1A;
 	ICR1 = OCR1C + us2cts(sys.cam_readout_us) - 1;
 	
 	// Set timing interval for TC3 (it may need multiple cycles)
@@ -49,7 +50,6 @@ void start_acq()
 	
 	// open laser shutters
 	lasers_on();
-
 }
 
 
@@ -70,16 +70,20 @@ ISR(TIMER1_COMPB_vect)
 ISR(TIMER1_COMPC_vect)
 {
 	bitClear(CAMERA_PORT, CAMERA_PIN);
+	
+	// Additional logic - preparation for the next frame
+
+	// This code is relevant only for ALEX
+	sys.current_laser = next_laser();
+	// Did we reach the last frame in the burst?
+	uint8_t first_laser = sys.lasers_in_use & -sys.lasers_in_use;
+	// Cy2 because we already moved on to the next laser
+	last_burst_frame = (sys.current_laser == first_laser);
 }
 
 ISR(TIMER1_OVF_vect)
 {
-	// This code is relevant only for ALEX
-	sys.current_laser = next_laser();
-	
-	// Did we reach the last frame in the burst?
-	uint8_t first_laser = sys.lasers_in_use & -sys.lasers_in_use;
-	if (sys.current_laser == first_laser)  // Cy2 because we already moved on to the next laser
+	if(last_burst_frame)
 	{
 		TCCR1B = bit(WGM12) | bit(WGM13);
 	}
@@ -100,13 +104,13 @@ ISR(TIMER3_OVF_vect)
 			// Reset the prescaler to sync timers
 			GTCCR |= PSRSYNC;
 	
-			// Start timer 1
-			TCCR1B |= TCCR1B_prescaler_bits;
-	
+			t3_cycle = 0;
+
 			// Open laser shutters
 			lasers_on();
 
-			t3_cycle = 0;
+			// Start timer 1
+			TCCR1B |= TCCR1B_prescaler_bits;
 		}
 	}
 }
