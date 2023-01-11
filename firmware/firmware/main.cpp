@@ -19,7 +19,7 @@ SystemSettings sys = {
 	1000UL,  // uint32_t shutter_delay_us;
 	12000UL, // uint32_t cam_readout_us;
 	2500UL,  // uint32_t exp_time_us;
-	16000UL, // uint32_t acq_period_us; // at least the sum of three above
+	1500000UL, // uint32_t acq_period_us; // at least the sum of all three above
 	0,       // uint32_t n_frames;
 	0,       // uint32_t n_acquired_frames;
 	};

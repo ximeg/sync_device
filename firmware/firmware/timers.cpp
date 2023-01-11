@@ -1,11 +1,9 @@
 #include "timers.h"
 #include "triggers.h"
 
-#define SET_FRAME_DURATION(us) (ICR1 = us2cts(us) - 1)
-#define SET_CAM_RAISING_EDGE(us) (OCR1A = us2cts(us))
-#define SET_CAM_FALLING_EDGE(us) (OCR1C = us2cts(us))
-#define SET_LASER_FALLING_EDGE(us) (OCR1B = us2cts(us))
 
+static uint16_t t3_cycle = 0;
+static uint16_t t3_N_OVF_cycles = 1;
 
 void start_acq()
 {
@@ -15,8 +13,17 @@ void start_acq()
 	OCR1C = us2cts(sys.exp_time_us) + OCR1A;
 	ICR1 = OCR1C + 1;
 	
-	// Set timing interval for TC3
-	ICR3 = us2cts(sys.acq_period_us) - 1;
+	// Set timing interval for TC3 (it may need multiple cycles)
+	t3_cycle = 0;
+	t3_N_OVF_cycles = 1;
+	// We divide required #counts in half until if fits into 16bit
+	uint32_t cts = us2cts(sys.acq_period_us);
+	while (cts >= 65535)
+	{
+		cts >>= 1;             // divide in half
+		t3_N_OVF_cycles <<= 1; // double number of cycles
+	}
+	ICR3 = cts - 1;
 	
 	// Pause and sync timers
 	GTCCR |= bit(TSM) | bit(PSRSYNC);
@@ -68,12 +75,18 @@ ISR(TIMER1_COMPC_vect)
 
 ISR(TIMER3_OVF_vect)
 {
-	// Reset the prescaler to sync timers
-	GTCCR |= PSRSYNC;
+	t3_cycle++;
+	if (t3_cycle >= t3_N_OVF_cycles)
+	{
+		// Reset the prescaler to sync timers
+		GTCCR |= PSRSYNC;
 	
-	// Start timer 1
-	TCCR1B |= TCCR1B_prescaler_bits;
+		// Start timer 1
+		TCCR1B |= TCCR1B_prescaler_bits;
 	
-	// Open laser shutters
-	write_shutters(0x0f);
+		// Open laser shutters
+		write_shutters(0x0f);
+
+		t3_cycle = 0;
+	}
 }
