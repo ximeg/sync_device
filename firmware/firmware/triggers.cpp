@@ -25,18 +25,49 @@ void lasers_off()
 	SHUTTERS_PORT &= ~SHUTTERS_MASK;
 }
 
+
+uint8_t get_lowest_bit(uint8_t v)
+{
+	return v & -v;
+}
+
+uint8_t lowest_bit_position(uint8_t v)
+{
+	uint8_t r = 0;
+	uint8_t lowest_bit = get_lowest_bit(v);
+	while (lowest_bit >>= 1)
+	{
+		r++;
+	}
+	return r;
+}
+
+uint8_t highest_bit_position(uint8_t v)
+{
+	uint8_t r = 0;
+	while (v >>= 1)
+	{
+		r++;
+	}
+	return r;
+}
+
 uint8_t next_laser()
 {
-	switch (sys.current_laser)
+	uint8_t laser_id = lowest_bit_position(sys.current_laser);
+	uint8_t next_active = 0;
+	
+	while(1)
 	{
-	case bit(CY2_PIN):
-		return bit(CY3_PIN);
-	case bit(CY3_PIN):
-		return bit(CY5_PIN);
-	case bit(CY5_PIN):
-		return bit(CY7_PIN);
-	case bit(CY7_PIN):
-		return bit(CY2_PIN);
+		laser_id++;
+		next_active = (sys.lasers_in_use >> laser_id) & 1UL;
+		if (next_active)
+		{
+			return 1UL << laser_id;
+		}
+		if (laser_id == 8)
+		{
+			return get_lowest_bit(sys.lasers_in_use);
+		}
 	}
-	return 0;
 }

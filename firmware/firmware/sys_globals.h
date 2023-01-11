@@ -66,8 +66,8 @@ typedef struct SystemSettings
 	// n_frames_per_burst? // n_bursts??
 	uint32_t n_frames;          // 0 means unlimited
 	uint32_t n_acquired_frames; // Total number of acquired frames (pulses to camera)
-	uint8_t  current_laser;     // Bit pattern to control laser shutters. Bit 0: Cy2, bit 3: Cy7
-	// uint8_t  lasers_in_use; // Not always we need 4x lasers for ALEX, right?
+	uint8_t  current_laser;     // Bit pattern indicating currently active laser
+	uint8_t  lasers_in_use;     // Bit pattern to control laser shutters. Bit 0: Cy2, bit 3: Cy7
 } SystemSettings;
 
 extern SystemSettings sys;

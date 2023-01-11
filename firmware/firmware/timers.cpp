@@ -78,7 +78,8 @@ ISR(TIMER1_OVF_vect)
 	sys.current_laser = next_laser();
 	
 	// Did we reach the last frame in the burst?
-	if (sys.current_laser == bit(CY2_PIN))  // Cy2 because we already moved on to the next laser
+	uint8_t first_laser = sys.lasers_in_use & -sys.lasers_in_use;
+	if (sys.current_laser == first_laser)  // Cy2 because we already moved on to the next laser
 	{
 		TCCR1B = bit(WGM12) | bit(WGM13);
 	}
