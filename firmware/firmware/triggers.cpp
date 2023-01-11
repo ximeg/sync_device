@@ -24,3 +24,22 @@ void lasers_off()
 {
 	SHUTTERS_PORT &= ~SHUTTERS_MASK;
 }
+
+void next_laser()
+{
+	switch (sys.active_lasers)
+	{
+	case bit(CY2_PIN):
+		sys.active_lasers = bit(CY3_PIN);
+	break;
+	case bit(CY3_PIN):
+		sys.active_lasers = bit(CY5_PIN);
+	break;
+	case bit(CY5_PIN):
+		sys.active_lasers = bit(CY7_PIN);
+	break;
+	case bit(CY7_PIN):
+		sys.active_lasers = bit(CY2_PIN);
+	break;
+	}
+}

@@ -22,7 +22,7 @@ SystemSettings sys = {
 	16000UL, // uint32_t acq_period_us; // at least the sum of all three above
 	0,       // uint32_t n_frames;
 	0,       // uint32_t n_acquired_frames;
-	bit(CY3_PIN) | bit(CY5_PIN)  // uint8_t active_lasers;
+	bit(CY3_PIN) // uint8_t active_lasers;
 	};
 
 int main(void)

@@ -16,3 +16,4 @@ void init_IO();
 
 void lasers_on();
 void lasers_off();
+void next_laser();

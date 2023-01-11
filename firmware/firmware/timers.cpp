@@ -84,6 +84,8 @@ ISR(TIMER3_OVF_vect)
 		// Start timer 1
 		TCCR1B |= TCCR1B_prescaler_bits;
 	
+		next_laser();
+	
 		// Open laser shutters
 		lasers_on();
 
