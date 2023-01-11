@@ -23,9 +23,9 @@
      inkscape:pagecheckerboard="0"
      inkscape:document-units="mm"
      showgrid="false"
-     inkscape:zoom="5.5"
-     inkscape:cx="248.18182"
-     inkscape:cy="93.090909"
+     inkscape:zoom="1.9445436"
+     inkscape:cx="278.98577"
+     inkscape:cy="346.61089"
      inkscape:window-width="1920"
      inkscape:window-height="1051"
      inkscape:window-x="-9"
@@ -62,6 +62,14 @@
          d="M 0.0,0.0 L 5.0,-5.0 L -12.5,0.0 L 5.0,5.0 L 0.0,0.0 z "
          id="path939" />
     </marker>
+    <clipPath
+       clipPathUnits="userSpaceOnUse"
+       id="clipPath64838">
+      <path
+         style="fill:none;stroke:#000000;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         d="m 147.2898,99.735267 c 0.6999,0.437433 0.3159,0.242128 0.88442,0.476223 0.13381,0.0551 1.39112,0.53718 1.49671,0.74836 0.0326,0.0652 0,0.1967 0,0.27213 0,0.11338 0.0461,0.23654 0,0.34016 -0.0521,0.11722 -0.19089,0.17284 -0.27212,0.27213 -0.74599,0.91175 -0.0581,0.0847 -0.47623,0.81639 -0.0318,0.0557 -0.10738,0.0787 -0.13607,0.13606 -0.0746,0.14926 -0.0963,1.36703 -0.068,1.56474 0.0673,0.47125 0.94988,1.29003 1.29261,1.63277 0.041,0.041 0.36121,0.38715 0.27213,0.47623 -0.2279,0.2279 -0.49394,0.41441 -0.74835,0.61229 -0.26428,0.20555 -0.88592,0.42588 -0.74836,0.88442 0.41914,1.39712 1.91887,1.84058 2.92539,2.72129 0.46723,0.40882 0.4082,0.32627 0.4082,0.74835 0,0.13939 0.0118,0.26624 -0.13607,0.34016 -0.29906,0.14953 -2.07917,-0.11873 -2.3131,-0.13606 -0.38512,-0.0285 -0.7705,-0.0579 -1.15654,-0.068 -0.99414,-0.0262 -1.99814,0 -2.99342,0 -1.42868,0 -2.85736,0 -4.28603,0 -0.14257,0 -0.86192,0.0905 -1.02049,-0.068 -0.016,-0.016 0.0126,-0.0492 0,-0.068 -0.32698,-0.49048 -0.0207,0.0809 -0.2041,-0.40819 -0.0464,-0.12381 -0.16228,-0.21472 -0.20409,-0.34016 -0.0507,-0.15212 -0.0228,-0.32239 -0.068,-0.47623 -0.0689,-0.23432 -0.1949,-0.44861 -0.27213,-0.68032 -0.33054,-0.99162 0.0238,-0.10892 -0.2041,-1.02048 -0.0592,-0.23695 -0.20503,-0.44548 -0.27213,-0.68032 -0.1224,-0.4284 -0.25679,-0.85495 -0.34016,-1.29262 -0.0469,-0.24606 -0.0219,-0.50216 -0.068,-0.74835 -0.15309,-0.81647 -0.13666,0.12892 -0.2041,-0.68032 -0.0744,-0.8932 -0.21046,-2.62779 0,-3.46965 0.0641,-0.25645 0.21325,-1.786107 0.34016,-1.83687 0.28092,-0.112366 0.58774,-0.144762 0.88442,-0.204097 1.41067,-0.282136 2.66278,-0.408194 4.08194,-0.408194 0.96341,0 1.83471,0.045 2.78932,0.204097 0.068,0.01135 0.13606,-0.02268 0.2041,0 0.0608,0.02029 0.0787,0.107378 0.13606,0.136065 0.13505,0.06753 0.32393,0.143176 0.47622,0.204096 z"
+         id="path64840" />
+    </clipPath>
   </defs>
   <g
      inkscape:label="Layer 1"
@@ -110,7 +118,7 @@
          id="tspan7449"
          style="font-size:0.705556px;stroke-width:0.264583"
          x="29.58219"
-         y="11.651848">open laser shutter, start  TC1 and TC3</tspan></text>
+         y="11.651848">open laser shutter, start TC1 and TC3</tspan></text>
     <path
        style="fill:none;stroke:#000000;stroke-width:0.05;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        d="M 29.251742,25.927893 V 12.841991 h 2.485535"
@@ -331,5 +339,354 @@
          style="font-size:0.705556px;stroke-width:0.264583"
          x="51.733025"
          y="40.906273">contains integer # of TC3 overflow events</tspan></text>
+    <rect
+       style="fill:#ffccaa;stroke:#000000;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none"
+       id="rect61699"
+       width="10.400517"
+       height="6.7914977"
+       x="41.054157"
+       y="101.91176" />
+    <rect
+       style="fill:none;stroke:#000000;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none"
+       id="rect61701"
+       width="2.4136996"
+       height="6.7914977"
+       x="26.838041"
+       y="101.91176" />
+    <rect
+       style="fill:#ffff00;stroke:#000000;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none"
+       id="rect61703"
+       width="9.388711"
+       height="6.7914977"
+       x="29.251747"
+       y="101.91176" />
+    <rect
+       style="fill:none;stroke:#000000;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none"
+       id="rect61705"
+       width="2.4136996"
+       height="6.7914977"
+       x="38.640457"
+       y="101.91176" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.05;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 26.838042,104.27758 v -13.0859 h 2.485535"
+       id="path61707"
+       sodipodi:nodetypes="ccc" />
+    <text
+       xml:space="preserve"
+       style="font-size:0.705556px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       x="29.58219"
+       y="91.385635"
+       id="text61711"><tspan
+         sodipodi:role="line"
+         id="tspan61709"
+         style="font-size:0.705556px;stroke-width:0.264583"
+         x="29.58219"
+         y="91.385635">open laser shutter, start TC1 and TC3</tspan></text>
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.05;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 29.251742,105.66168 v -13.0859 h 2.485535"
+       id="path61713"
+       sodipodi:nodetypes="ccc" />
+    <text
+       xml:space="preserve"
+       style="font-size:0.705556px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       x="32.168297"
+       y="92.683533"
+       id="text61717"><tspan
+         sodipodi:role="line"
+         id="tspan61715"
+         style="font-size:0.705556px;stroke-width:0.264583"
+         x="32.168297"
+         y="92.683533">TC1 COMPA: trigger camera (shutter is opened)</tspan></text>
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.05;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 38.668486,101.9017 v -7.79424 h 2.485535"
+       id="path61719"
+       sodipodi:nodetypes="ccc" />
+    <text
+       xml:space="preserve"
+       style="font-size:0.705556px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       x="41.585041"
+       y="94.21521"
+       id="text61723"><tspan
+         sodipodi:role="line"
+         id="tspan61721"
+         style="font-size:0.705556px;stroke-width:0.264583"
+         x="41.585041"
+         y="94.21521">TC1 COMPB: Close shutter</tspan></text>
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.05;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-start:url(#Arrow1Lstart);marker-end:url(#Arrow1Lend)"
+       d="m 26.838042,114.19096 11.757647,0"
+       id="path61725"
+       sodipodi:nodetypes="cc" />
+    <text
+       xml:space="preserve"
+       style="font-size:0.705556px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       x="30.429665"
+       y="113.53007"
+       id="text61729"><tspan
+         sodipodi:role="line"
+         id="tspan61727"
+         style="font-size:0.705556px;stroke-width:0.264583"
+         x="30.429665"
+         y="113.53007">exp_time_us</tspan></text>
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.05;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-start:url(#Arrow1Lstart);marker-end:url(#Arrow1Lend)"
+       d="m 26.838042,111.4683 h 2.311694"
+       id="path61731"
+       sodipodi:nodetypes="cc" />
+    <text
+       xml:space="preserve"
+       style="font-size:0.705556px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       x="25.324215"
+       y="110.76676"
+       id="text61735"><tspan
+         sodipodi:role="line"
+         id="tspan61733"
+         style="font-size:0.705556px;stroke-width:0.264583"
+         x="25.324215"
+         y="110.76676">shutter_delay_us</tspan></text>
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.05;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-start:url(#Arrow1Lstart);marker-end:url(#Arrow1Lend)"
+       d="m 38.5444,111.57971 h 2.311694"
+       id="path61737"
+       sodipodi:nodetypes="cc" />
+    <text
+       xml:space="preserve"
+       style="font-size:0.705556px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       x="37.030575"
+       y="110.87817"
+       id="text61741"><tspan
+         sodipodi:role="line"
+         id="tspan61739"
+         style="font-size:0.705556px;stroke-width:0.264583"
+         x="37.030575"
+         y="110.87817">shutter_delay_us</tspan></text>
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.05;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 41.066069,103.40526 v -7.79424 h 2.485535"
+       id="path61743"
+       sodipodi:nodetypes="ccc" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.05;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 51.981205,105.40981 v -7.794239 h 1.839008"
+       id="path61745"
+       sodipodi:nodetypes="ccc" />
+    <text
+       xml:space="preserve"
+       style="font-size:0.705556px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       x="43.982624"
+       y="95.718773"
+       id="text61749"><tspan
+         sodipodi:role="line"
+         id="tspan61747"
+         style="font-size:0.705556px;stroke-width:0.264583"
+         x="43.982624"
+         y="95.718773">TC 1COMPC: Stop camera (level trigger, shutter just closed)</tspan></text>
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.05;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-start:url(#Arrow1Lstart);marker-end:url(#Arrow1Lend)"
+       d="m 40.778508,113.04926 h 10.77836"
+       id="path61757"
+       sodipodi:nodetypes="cc" />
+    <text
+       xml:space="preserve"
+       style="font-size:0.705556px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       x="43.200943"
+       y="112.48457"
+       id="text61761"><tspan
+         sodipodi:role="line"
+         id="tspan61759"
+         style="font-size:0.705556px;stroke-width:0.264583"
+         x="43.200943"
+         y="112.48457">cam_readout_us</tspan></text>
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#Arrow1Lend)"
+       d="M 20.276885,105.36498 H 161.68686"
+       id="path61771"
+       sodipodi:nodetypes="cc" />
+    <text
+       xml:space="preserve"
+       style="font-size:0.705556px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       x="54.085411"
+       y="97.835434"
+       id="text61781"><tspan
+         sodipodi:role="line"
+         style="font-size:0.705556px;stroke-width:0.264583"
+         x="54.085411"
+         y="97.835434"
+         id="tspan74859">TC1 OVF: if last frame in burst: stop TC1;</tspan><tspan
+         sodipodi:role="line"
+         style="font-size:0.705556px;stroke-width:0.264583"
+         x="54.085411"
+         y="98.717377"
+         id="tspan75517">otherwise, <tspan
+   style="font-weight:bold"
+   id="tspan76617">open laser shutter</tspan></tspan></text>
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.05;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-start:url(#Arrow1Lstart);marker-end:url(#Arrow1Lend)"
+       d="M 26.969146,119.18429 H 114.19629"
+       id="path61783"
+       sodipodi:nodetypes="cc" />
+    <text
+       xml:space="preserve"
+       style="font-size:0.705556px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       x="66.020523"
+       y="118.52339"
+       id="text61787"><tspan
+         sodipodi:role="line"
+         id="tspan61785"
+         style="font-size:0.705556px;stroke-width:0.264583"
+         x="66.020523"
+         y="118.52339">acq_period_us</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:3.26614px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       x="56.71534"
+       y="81.218552"
+       id="text62257"><tspan
+         sodipodi:role="line"
+         id="tspan62255"
+         style="stroke-width:0.264583"
+         x="56.71534"
+         y="81.218552">ALEX</tspan></text>
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.05;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-start:url(#Arrow1Lstart);marker-end:url(#Arrow1Lend)"
+       d="M 29.151138,115.5516 H 40.908785"
+       id="path64456"
+       sodipodi:nodetypes="cc" />
+    <text
+       xml:space="preserve"
+       style="font-size:0.705556px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       x="32.74276"
+       y="114.89071"
+       id="text64460"><tspan
+         sodipodi:role="line"
+         id="tspan64458"
+         style="font-size:0.705556px;stroke-width:0.264583"
+         x="32.74276"
+         y="114.89071">exp_time_us</tspan></text>
+    <rect
+       style="fill:#ffccaa;stroke:#000000;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none"
+       id="rect64658"
+       width="10.400517"
+       height="6.7914977"
+       x="66.199959"
+       y="101.91176" />
+    <rect
+       style="fill:none;stroke:#000000;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none"
+       id="rect64660"
+       width="2.4136996"
+       height="6.7914977"
+       x="51.983841"
+       y="101.91176" />
+    <rect
+       style="fill:#ffff00;stroke:#000000;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none"
+       id="rect64662"
+       width="9.388711"
+       height="6.7914977"
+       x="54.397545"
+       y="101.91176" />
+    <rect
+       style="fill:none;stroke:#000000;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none"
+       id="rect64664"
+       width="2.4136996"
+       height="6.7914977"
+       x="63.786255"
+       y="101.91176" />
+    <rect
+       style="fill:#ffccaa;stroke:#000000;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none"
+       id="rect64666"
+       width="10.400517"
+       height="6.7914977"
+       x="91.345764"
+       y="101.91176" />
+    <rect
+       style="fill:none;stroke:#000000;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none"
+       id="rect64668"
+       width="2.4136996"
+       height="6.7914977"
+       x="77.129646"
+       y="101.91176" />
+    <rect
+       style="fill:#ffff00;stroke:#000000;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none"
+       id="rect64670"
+       width="9.388711"
+       height="6.7914977"
+       x="79.54335"
+       y="101.91176" />
+    <rect
+       style="fill:none;stroke:#000000;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none"
+       id="rect64672"
+       width="2.4136996"
+       height="6.7914977"
+       x="88.93206"
+       y="101.91176" />
+    <rect
+       style="fill:#ffccaa;stroke:#000000;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none"
+       id="rect64674"
+       width="10.400517"
+       height="6.7914977"
+       x="128.69547"
+       y="101.91176" />
+    <rect
+       style="fill:none;stroke:#000000;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none"
+       id="rect64676"
+       width="2.4136996"
+       height="6.7914977"
+       x="114.47935"
+       y="101.91176" />
+    <rect
+       style="fill:#ffff00;stroke:#000000;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none"
+       id="rect64678"
+       width="9.388711"
+       height="6.7914977"
+       x="116.89305"
+       y="101.91176" />
+    <rect
+       style="fill:none;stroke:#000000;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none"
+       id="rect64680"
+       width="2.4136996"
+       height="6.7914977"
+       x="126.28176"
+       y="101.91176" />
+    <rect
+       style="fill:none;stroke:#000000;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none"
+       id="rect64684"
+       width="2.4136996"
+       height="6.7914977"
+       x="139.62514"
+       y="101.91176" />
+    <rect
+       style="fill:#ffff00;stroke:#000000;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none"
+       id="rect64686"
+       width="9.388711"
+       height="6.7914977"
+       x="142.03883"
+       y="101.91176"
+       clip-path="url(#clipPath64838)" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.05;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 101.77098,105.40981 v -7.794239 h 1.83901"
+       id="path76699"
+       sodipodi:nodetypes="ccc" />
+    <text
+       xml:space="preserve"
+       style="font-size:0.705556px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       x="103.87518"
+       y="97.835434"
+       id="text76707"><tspan
+         sodipodi:role="line"
+         style="font-size:0.705556px;stroke-width:0.264583"
+         x="103.87518"
+         y="97.835434"
+         id="tspan76701">TC1 OVF: if last frame in burst: <tspan
+   style="font-weight:bold"
+   id="tspan77505">stop TC1;</tspan></tspan><tspan
+         sodipodi:role="line"
+         style="font-size:0.705556px;stroke-width:0.264583"
+         x="103.87518"
+         y="98.717377"
+         id="tspan76705">otherwise, open laser shutter</tspan></text>
   </g>
 </svg>

@@ -17,7 +17,7 @@ void init_IO()
 
 void lasers_on()
 {
-	SHUTTERS_PORT |= sys.active_lasers & SHUTTERS_MASK;
+	SHUTTERS_PORT |= sys.current_laser & SHUTTERS_MASK;
 }
 
 void lasers_off()
@@ -25,21 +25,18 @@ void lasers_off()
 	SHUTTERS_PORT &= ~SHUTTERS_MASK;
 }
 
-void next_laser()
+uint8_t next_laser()
 {
-	switch (sys.active_lasers)
+	switch (sys.current_laser)
 	{
 	case bit(CY2_PIN):
-		sys.active_lasers = bit(CY3_PIN);
-	break;
+		return bit(CY3_PIN);
 	case bit(CY3_PIN):
-		sys.active_lasers = bit(CY5_PIN);
-	break;
+		return bit(CY5_PIN);
 	case bit(CY5_PIN):
-		sys.active_lasers = bit(CY7_PIN);
-	break;
+		return bit(CY7_PIN);
 	case bit(CY7_PIN):
-		sys.active_lasers = bit(CY2_PIN);
-	break;
+		return bit(CY2_PIN);
 	}
+	return 0;
 }

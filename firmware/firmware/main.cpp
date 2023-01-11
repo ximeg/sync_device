@@ -18,11 +18,11 @@ SystemSettings sys = {
 	IDLE,    // STATUS   status;
 	1000UL,  // uint32_t shutter_delay_us;
 	12000UL, // uint32_t cam_readout_us;
-	2500UL,  // uint32_t exp_time_us;
-	16000UL, // uint32_t acq_period_us; // at least the sum of all three above
+	25000UL,  // uint32_t exp_time_us;
+	400000UL, // uint32_t acq_period_us; // at least the sum of all three above
 	0,       // uint32_t n_frames;
 	0,       // uint32_t n_acquired_frames;
-	bit(CY3_PIN) // uint8_t active_lasers;
+	bit(CY2_PIN) // uint8_t current_laser;
 	};
 
 int main(void)

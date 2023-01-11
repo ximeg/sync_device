@@ -5,25 +5,30 @@
 static uint16_t t3_cycle = 0;
 static uint16_t t3_N_OVF_cycles = 1;
 
-void start_acq()
+void set_timer3_period(uint32_t us)
 {
-	// Set timing intervals for TC1
-	OCR1A = us2cts(sys.shutter_delay_us);
-	OCR1B = us2cts(sys.exp_time_us);
-	OCR1C = us2cts(sys.exp_time_us) + OCR1A;
-	ICR1 = OCR1C + 1;
-	
-	// Set timing interval for TC3 (it may need multiple cycles)
 	t3_cycle = 0;
 	t3_N_OVF_cycles = 1;
 	// We divide required #counts in half until if fits into 16bit
-	uint32_t cts = us2cts(sys.acq_period_us);
+	uint32_t cts = us2cts(us);
 	while (cts >= 65535)
 	{
 		cts >>= 1;             // divide in half
 		t3_N_OVF_cycles <<= 1; // double number of cycles
 	}
 	ICR3 = cts - 1;
+}
+
+void start_acq()
+{
+	// Set timing intervals for TC1
+	OCR1A = us2cts(sys.shutter_delay_us);
+	OCR1B = us2cts(sys.exp_time_us);
+	OCR1C = us2cts(sys.exp_time_us) + OCR1A;
+	ICR1 = OCR1C + us2cts(sys.cam_readout_us) - 1;
+	
+	// Set timing interval for TC3 (it may need multiple cycles)
+	set_timer3_period(sys.acq_period_us);
 	
 	// Pause and sync timers
 	GTCCR |= bit(TSM) | bit(PSRSYNC);
@@ -52,12 +57,6 @@ void start_acq()
 // INTERRUPTS
 // ---------------------------
 
-ISR(TIMER1_OVF_vect)
-{
-	// Stop the timer (TC3 will reactivate it later)
-	TCCR1B = bit(WGM12) | bit(WGM13);
-}
-
 ISR(TIMER1_COMPA_vect)
 {
 	bitSet(CAMERA_PORT, CAMERA_PIN);
@@ -73,6 +72,23 @@ ISR(TIMER1_COMPC_vect)
 	bitClear(CAMERA_PORT, CAMERA_PIN);
 }
 
+ISR(TIMER1_OVF_vect)
+{
+	// This code is relevant only for ALEX
+	sys.current_laser = next_laser();
+	
+	// Did we reach the last frame in the burst?
+	if (sys.current_laser == bit(CY2_PIN))  // Cy2 because we already moved on to the next laser
+	{
+		TCCR1B = bit(WGM12) | bit(WGM13);
+	}
+	else
+	{
+		lasers_on();
+	}
+}
+
+
 ISR(TIMER3_OVF_vect)
 {
 	t3_cycle++;
@@ -83,8 +99,6 @@ ISR(TIMER3_OVF_vect)
 	
 		// Start timer 1
 		TCCR1B |= TCCR1B_prescaler_bits;
-	
-		next_laser();
 	
 		// Open laser shutters
 		lasers_on();
