@@ -3,7 +3,7 @@
 #include "sys_globals.h"
 
 // 16bit timer prescaler configuration. See AtMega2560 data sheet table 17-6
-#define PRESC256
+#define PRESC1024
 
 #ifdef PRESC8
 const uint8_t presc_shift = 1;
@@ -33,6 +33,5 @@ const uint8_t TCCR1B_prescaler_bits = bit(CS10) | bit(CS12);
 #define us2cts(us) (us >> presc_shift)             // microseconds to counts
 #endif // PRESC8
 
-void init_timer1();
-void reset_timer1();
 
+void start_acq();

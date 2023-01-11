@@ -14,12 +14,22 @@
 #include "triggers.h"
 #include "timers.h"
 
+SystemSettings sys = {
+	IDLE,    // STATUS   status;
+	1000UL,  // uint32_t shutter_delay_us;
+	12000UL, // uint32_t cam_readout_us;
+	2500UL,  // uint32_t exp_time_us;
+	16000UL, // uint32_t acq_period_us; // at least the sum of three above
+	0,       // uint32_t n_frames;
+	0,       // uint32_t n_acquired_frames;
+	};
 
 int main(void)
 {
     init_IO();
-	init_timer1();
 	sei();
+
+	start_acq();
 
     while (1) 
     {

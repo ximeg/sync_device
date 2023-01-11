@@ -46,3 +46,27 @@ const uint8_t FLUIDIC_PIN = PINE4; // aka Arduino pin 2
 const uint8_t CAMERA_PIN = PINB7; // aka Arduino pin 13
 #define CAMERA_PORT PORTB
 #define CAMERA_DDR DDRB
+
+/**********************
+SYSTEM STATUS VARIABLES
+**********************/
+enum STATUS
+{
+	IDLE = 0,            // Doing nothing, waiting for commands
+	FRAME,               // Data acquisition (triggering of lasers and camera using TC1)
+	INTERFRAME_DELAY,    // Pause between frames (controlled by TC3)
+};
+
+typedef struct SystemSettings
+{
+	STATUS   status;
+	uint32_t shutter_delay_us;  // Laser shutter delay, 1000us by default
+	uint32_t cam_readout_us;    // Camera readout time, 12 ms by default. Depends on the ROI size
+	uint32_t exp_time_us;       // Exposure time = duration of laser shutter being open
+	uint32_t acq_period_us;     // Time period between subsequent frames or bursts of frames (ALEX)
+	// n_frames_per_burst? // n_bursts??
+	uint32_t n_frames;          // 0 means unlimited
+	uint32_t n_acquired_frames; // Total number of acquired frames (pulses to camera)
+} SystemSettings;
+
+extern SystemSettings sys;
