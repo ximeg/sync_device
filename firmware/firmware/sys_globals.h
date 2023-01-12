@@ -11,19 +11,27 @@
 #pragma once
 
 #define F_CPU 16000000UL
+
 #include <avr/io.h>
 #include <avr/interrupt.h>
+
+/***************/
+/* Error codes */
+/***************/
+typedef signed char errcode;
+#define OK 0
+#define ERR_TIMEOUT -1
 
 
 /*********************************
 HELPFUL BIT MANIPULATION FUNCTIONS
 *********************************/
 #define bit(b)                         (1UL << (b))
-#define bitRead(value, bit)            (((value) >> (bit)) & 0x01)
-#define bitSet(value, bit)             ((value) |= (1UL << (bit)))
-#define bitClear(value, bit)           ((value) &= ~(1UL << (bit)))
-#define bitToggle(value, bit)          ((value) ^= (1UL << (bit)))
-#define bitWrite(value, bit, bitvalue) ((bitvalue) ? bitSet(value, bit) : bitClear(value, bit))
+#define bitRead(register, b)            (((register) >> (b)) & 0x01)
+#define bitSet(register, b)             ((register) |= (1UL << (b)))
+#define bitClear(register, b)           ((register) &= ~(1UL << (b)))
+#define bitToggle(register, b)          ((register) ^= (1UL << (b)))
+#define bitWrite(register, b, bitvalue) ((bitvalue) ? bitSet(register, b) : bitClear(register, b))
 
 /****************************
 PINOUT AND WIRING DEFINITIONS

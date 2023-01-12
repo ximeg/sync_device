@@ -4,8 +4,9 @@
 
 void init_UART();
 
-void UART_tx(const char data);
-void UART_tx(const char *data);
+void UART_tx(const char byte);
+void UART_tx(const char *bytearray);
 
 
-char UART_rx();
+errcode UART_rx(char &byte);
+errcode UART_rx(char *bytearray, uint8_t size);
