@@ -13,6 +13,7 @@
 #include "sys_globals.h"
 #include "triggers.h"
 #include "timers.h"
+#include "uart.h"
 
 SystemSettings sys = {
 	IDLE,    // STATUS   status;
@@ -29,13 +30,16 @@ SystemSettings sys = {
 int main(void)
 {
     init_IO();
+	init_UART();
 	sei();
 
 	start_acq();
 
+	char buf;
     while (1) 
     {
-		;
+		buf = UART_rx();
+		UART_tx(buf + 1);
     }
 }
 
