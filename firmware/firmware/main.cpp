@@ -35,6 +35,8 @@ int main(void)
 
 	start_acq();
 
+	UART_tx("Big hello to this world!");
+
 	char buf;
     while (1) 
     {

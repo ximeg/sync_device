@@ -27,6 +27,14 @@ void UART_tx(const char data)
 	UDR0 = data;
 }
 
+void UART_tx(const char *data)
+{
+	for (uint8_t i = 0; data[i] != 0; i++)
+	{
+		UART_tx(data[i]);
+	}
+}
+
 char UART_rx()
 {
 	while ( !(UCSR0A & bit(RXC0)) ) // FIXME: or timeout!
