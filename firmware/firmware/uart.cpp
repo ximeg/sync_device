@@ -122,9 +122,15 @@ void parse_UART_command(const Data data)
 		case 'W':
 		MEM_IO_8bit(data.R.addr) = data.R.value;
 		break;
-	
+
+		// Set Acquisition period between frames/bursts
+		case 'A':
+		sys.acq_period_us = data.uint32_value;
+		break;
+
 		// Start acquisition
 		case 'S':
+		sys.n_frames = data.uint32_value;
 		start_acq();
 		break;
 

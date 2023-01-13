@@ -112,5 +112,14 @@ ISR(TIMER3_OVF_vect)
 			// Start timer 1
 			TCCR1B |= TCCR1B_prescaler_bits;
 		}
+		else
+		{
+			// Acquisition is finished. Stop timers and reset frame counters
+			TCCR1B &= ~TCCR1B_prescaler_bits;
+			TCCR3B &= ~TCCR1B_prescaler_bits;
+			
+			sys.n_acquired_frames = 0;
+			sys.n_frames = 0;
+		}
 	}
 }

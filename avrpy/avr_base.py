@@ -122,7 +122,7 @@ class AVR_Base(object):
 
         # properties
         self._fluidics_delay = 0
-        self._interframe_time_us = 100000
+        self._acq_period_us = 100000
         self._strobe_duration_us = 25000
         self._ALEX_cycle_delay_us = 0
 
@@ -198,17 +198,17 @@ class AVR_Base(object):
             com.write(pad(b"F" + c32(us)))
 
     @property
-    def interframe_time_us(self):
+    def acq_period_us(self):
         """
         Time delay between two camera frames
         """
-        return self._interframe_time_us
+        return self._acq_period_us
 
-    @interframe_time_us.setter
-    def interframe_time_us(self, us=100_000):
+    @acq_period_us.setter
+    def acq_period_us(self, us=100_000):
         with self.com as com:
-            com.write(pad(b"I" + cu32(us)))
-        self._interframe_time_us = us
+            com.write(pad(b"A" + cu32(us)))
+        self._acq_period_us = us
 
     @property
     def strobe_duration_us(self):
