@@ -123,7 +123,8 @@ class AVR_Base(object):
         # properties
         self._fluidics_delay = 0
         self._acq_period_us = 100000
-        self._strobe_duration_us = 25000
+        self._exp_time_us = 25000
+        self._shutter_delay_us = 1000
         self._ALEX_cycle_delay_us = 0
 
     def __del__(self):
@@ -211,17 +212,30 @@ class AVR_Base(object):
         self._acq_period_us = us
 
     @property
-    def strobe_duration_us(self):
+    def shutter_delay_us(self):
+        """
+        Time delay between two camera frames
+        """
+        return self._shutter_delay_us
+
+    @shutter_delay_us.setter
+    def shutter_delay_us(self, us=1000):
+        with self.com as com:
+            com.write(pad(b"D" + cu32(us)))
+        self._shutter_delay_us = us
+
+    @property
+    def exp_time_us(self):
         """
         Duration of the laser pulse during a stroboscopic image acquisition
         """
-        return self._strobe_duration_us
+        return self._exp_time_us
 
-    @strobe_duration_us.setter
-    def strobe_duration_us(self, us=25_000):
+    @exp_time_us.setter
+    def exp_time_us(self, us=25_000):
         with self.com as com:
             com.write(pad(b"E" + cu32(us)))
-        self._strobe_duration_us = us
+        self._exp_time_us = us
 
     @property
     def ALEX_cycle_delay_us(self):
