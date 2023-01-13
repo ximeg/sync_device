@@ -22,6 +22,9 @@ void set_timer3_period(uint32_t us)
 
 void start_acq()
 {
+	// If another acquisition is already running, stop it
+	stop_acq();
+	
 	// Set timing intervals for TC1
 	OCR1A = us2cts((sys.shutter_delay_us + 1));
 	OCR1B = us2cts(sys.exp_time_us);

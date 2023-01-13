@@ -145,15 +145,21 @@ void parse_UART_command(const Data data)
 		UART_tx_ok();
 		break;
 
-		// Set Acquisition period between frames/bursts
+		// Set exposure time
 		case 'E':
 		sys.exp_time_us = data.uint32_value;
 		UART_tx_ok();
 		break;
 
-		// Set shutter Delay
+		// Set shutter delay
 		case 'D':
 		sys.shutter_delay_us = data.uint32_value;
+		UART_tx_ok();
+		break;
+
+		// Set camera readout delay
+		case 'I':
+		sys.cam_readout_us = data.uint32_value;
 		UART_tx_ok();
 		break;
 	
@@ -164,7 +170,7 @@ void parse_UART_command(const Data data)
 		start_acq();
 		break;
 		
-		// Start acquisition
+		// Stop acquisition
 		case 'Q':
 		sys.n_frames = data.uint32_value;
 		UART_tx_ok();

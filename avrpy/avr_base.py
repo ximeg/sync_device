@@ -125,6 +125,7 @@ class AVR_Base(object):
         self._acq_period_us = 100000
         self._exp_time_us = 25000
         self._shutter_delay_us = 1000
+        self._cam_readout_us = 12000
         self._ALEX_cycle_delay_us = 0
 
     def __del__(self):
@@ -223,6 +224,19 @@ class AVR_Base(object):
         with self.com as com:
             com.write(pad(b"D" + cu32(us)))
         self._shutter_delay_us = us
+
+    @property
+    def cam_readout_us(self):
+        """
+        Time delay between two camera frames
+        """
+        return self._cam_readout_us
+
+    @cam_readout_us.setter
+    def cam_readout_us(self, us=1000):
+        with self.com as com:
+            com.write(pad(b"I" + cu32(us)))
+        self._cam_readout_us = us
 
     @property
     def exp_time_us(self):
