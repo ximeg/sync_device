@@ -1,6 +1,6 @@
 #include "timers.h"
 #include "triggers.h"
-
+#include "uart.h"
 
 static uint16_t t3_cycle = 0;
 static uint16_t t3_N_OVF_cycles = 1;
@@ -114,12 +114,18 @@ ISR(TIMER3_OVF_vect)
 		}
 		else
 		{
-			// Acquisition is finished. Stop timers and reset frame counters
-			TCCR1B &= ~TCCR1B_prescaler_bits;
-			TCCR3B &= ~TCCR1B_prescaler_bits;
-			
-			sys.n_acquired_frames = 0;
-			sys.n_frames = 0;
+			stop_acq();
+			UART_tx("DONE\n");
 		}
 	}
+}
+
+void stop_acq()
+{
+	// Acquisition is finished. Stop timers and reset frame counters
+	TCCR1B &= ~TCCR1B_prescaler_bits;
+	TCCR3B &= ~TCCR1B_prescaler_bits;
+	
+	sys.n_acquired_frames = 0;
+	sys.n_frames = 0;
 }

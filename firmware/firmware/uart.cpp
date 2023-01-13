@@ -48,6 +48,19 @@ union Data
 };
 
 
+/************************************************************************/
+/* UART responses                                                       */
+/************************************************************************/
+void UART_tx_ok() { UART_tx("OK\n"); }
+void UART_tx_err() { UART_tx("ERR\n"); }
+void UART_tx_err(const char *msg)
+{
+	UART_tx(msg);
+	UART_tx("\n");
+}
+
+
+
 void init_UART()
 {
 	// Set baud rate
@@ -108,6 +121,9 @@ errcode UART_rx(char *bytearray, uint8_t size)
 }
 
 
+/************************************************************************/
+/* Implementation of the communication protocol                         */
+/************************************************************************/
 
 void parse_UART_command(const Data data)
 {
@@ -126,12 +142,21 @@ void parse_UART_command(const Data data)
 		// Set Acquisition period between frames/bursts
 		case 'A':
 		sys.acq_period_us = data.uint32_value;
+		UART_tx_ok();
 		break;
 
 		// Start acquisition
 		case 'S':
 		sys.n_frames = data.uint32_value;
+		UART_tx_ok();
 		start_acq();
+		break;
+		
+		// Start acquisition
+		case 'Q':
+		sys.n_frames = data.uint32_value;
+		UART_tx_ok();
+		stop_acq();
 		break;
 
 		default:

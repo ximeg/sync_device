@@ -35,3 +35,5 @@ const uint8_t TCCR1B_prescaler_bits = bit(CS10) | bit(CS12);
 
 
 void start_acq();
+
+void stop_acq();
