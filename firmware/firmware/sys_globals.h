@@ -15,6 +15,8 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 
+#define VERSION "0.4.0\n"
+
 /***************/
 /* Error codes */
 /***************/

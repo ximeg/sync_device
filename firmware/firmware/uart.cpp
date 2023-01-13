@@ -1,6 +1,6 @@
 #include "uart.h"
 
-#define BAUDRATE 9600UL
+#define BAUDRATE 2000000UL
 #define UART_CTS F_CPU/8/BAUDRATE - 1
 
 void init_UART()

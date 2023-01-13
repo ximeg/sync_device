@@ -35,15 +35,17 @@ int main(void)
 
 //	start_acq();
 
-	UART_tx("Big hello to this world!\n");
+	char buf[51];
 
-	char buf[6];
-	char byte;
+	// Notify the host that we are ready
+	UART_tx("Sync device is ready. Firmware version: ");
+	UART_tx(VERSION);
+
     while (1) 
     {
-		if(UART_rx(buf, 5) == OK)
+		if(UART_rx(buf, 50) == OK)
 		{
-			buf[5] = 0;
+			buf[50] = 0;
 			UART_tx(buf);
 			UART_tx('\n');
 		}
