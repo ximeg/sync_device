@@ -130,5 +130,4 @@ void stop_acq()
 	TCCR3B &= ~TCCR1B_prescaler_bits;
 	
 	sys.n_acquired_frames = 0;
-	sys.n_frames = 0;
 }

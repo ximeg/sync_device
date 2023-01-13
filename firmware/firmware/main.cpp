@@ -24,7 +24,8 @@ SystemSettings sys = {
 	0,       // uint32_t n_frames;
 	0,       // uint32_t n_acquired_frames;
 	bit(CY2_PIN), // uint8_t current_laser;
-	SHUTTERS_MASK
+	SHUTTERS_MASK,
+	true     // ALEX_enabled;
 	};
 
 int main(void)

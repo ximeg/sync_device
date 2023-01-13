@@ -251,23 +251,6 @@ class AVR_Base(object):
             com.write(pad(b"E" + cu32(us)))
         self._exp_time_us = us
 
-    @property
-    def ALEX_cycle_delay_us(self):
-        """
-        Time delay between two cycles of ALEX
-        """
-        return self._ALEX_cycle_delay_us
-
-    @ALEX_cycle_delay_us.setter
-    def ALEX_cycle_delay_us(self, us=25_000):
-        with self.com as com:
-            com.write(pad(b"A" + cu32(us)))
-
-    def start_continuous(self, N=0):
-        """Start continuous image acquisition"""
-        with self.com as com:
-            com.write(pad(b"C" + cu32(N)))
-
     def start_stroboscopic(self, N=0):
         """Start stroboscopic image acquisition"""
         with self.com as com:
@@ -289,17 +272,15 @@ class AVR_Base(object):
             out = (out << 1) | bit
         return out
 
-    def set_shutters(self, active, idle=None, ALEX=False):
+    def set_shutters(self, active, ALEX=False):
         """
-        Set shutter state for active and idle cases.
-        If idle is not provided, it will be the inverse of active.
+        Specify laser channels to use.
         Expected input: list of four values, order: cy2, cy3, cy5, cy7.
         """
         a = self._bitlist2int(active, rev=True)
-        i = self._bitlist2int(idle, rev=True) if idle is not None else 0xFF - a
         ALEX = 1 if ALEX else 0
         with self.com as com:
-            com.write(pad(b"L" + cu8(a) + cu8(i) + cu8(ALEX)))
+            com.write(pad(b"L" + cu8(a) + cu8(ALEX)))
 
 
 def define_AVR(RegisterList: RegisterBase):

@@ -23,9 +23,8 @@ typedef struct
 // Laser shutter states - in active and idle mode
 typedef struct
 {
-	uint8_t active;
-	uint8_t idle;
-	bool ALEX;
+	uint8_t lasers_in_use;
+	bool ALEX_enabled;
 } LaserShutter;
 
 // Data packet for serial communication
@@ -38,7 +37,8 @@ union Data
 		// All members below share the same chunk of memory
 		union
 		{
-			Register R;                   // register access (R/W)
+			Register R;             // register access (R/W)
+			LaserShutter lasers;
 			int32_t int32_value;
 			uint32_t uint32_value;
 		};
@@ -139,6 +139,13 @@ void parse_UART_command(const Data data)
 		MEM_IO_8bit(data.R.addr) = data.R.value;
 		break;
 
+		// Set laser shutters and ALEX
+		case 'L':
+		sys.lasers_in_use = data.lasers.lasers_in_use;
+		sys.ALEX_enabled = data.lasers.ALEX_enabled;
+		UART_tx_ok();
+		break;
+
 		// Set Acquisition period between frames/bursts
 		case 'A':
 		sys.acq_period_us = data.uint32_value;
@@ -163,7 +170,7 @@ void parse_UART_command(const Data data)
 		UART_tx_ok();
 		break;
 	
-		// Start acquisition
+		// Start stroboscopic acquisition
 		case 'S':
 		sys.n_frames = data.uint32_value;
 		UART_tx_ok();
