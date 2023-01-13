@@ -1,7 +1,52 @@
 #include "uart.h"
+#include "timers.h"
 
 #define BAUDRATE 2000000UL
 #define UART_CTS F_CPU/8/BAUDRATE - 1
+
+// convert given memory address to long integer (for pointers),
+// then convert it to pointer to unsigned char, and dereference it.
+#define MEM_IO_8bit(mem_addr) (*(volatile uint8_t *)(uintptr_t)(mem_addr))
+
+
+/********************************
+COMMUNICATION PROTOCOL DEFINITION
+********************************/
+
+// Address and value of register for read/write operations
+typedef struct
+{
+	uint8_t addr;
+	uint8_t value;
+} Register;
+
+// Laser shutter states - in active and idle mode
+typedef struct
+{
+	uint8_t active;
+	uint8_t idle;
+	bool ALEX;
+} LaserShutter;
+
+// Data packet for serial communication
+union Data
+{
+	struct
+	{
+		uint8_t cmd;
+
+		// All members below share the same chunk of memory
+		union
+		{
+			Register R;                   // register access (R/W)
+			int32_t int32_value;
+			uint32_t uint32_value;
+		};
+	};
+
+	char bytes[5];
+};
+
 
 void init_UART()
 {
@@ -60,4 +105,39 @@ errcode UART_rx(char *bytearray, uint8_t size)
 			return ERR_TIMEOUT;
 
 	return OK;
+}
+
+
+
+void parse_UART_command(const Data data)
+{
+	switch (data.cmd)
+	{
+		// Read register
+		case 'R':
+		UART_tx(MEM_IO_8bit(data.R.addr));
+		break;
+
+		// Write register
+		case 'W':
+		MEM_IO_8bit(data.R.addr) = data.R.value;
+		break;
+	
+		// Start acquisition
+		case 'S':
+		start_acq();
+		break;
+
+		default:
+		break;
+	}
+}
+
+void poll_UART()
+{
+	Data data;
+	if (UART_rx(data.bytes, 5) == OK)
+	{
+		parse_UART_command(data);
+	}
 }

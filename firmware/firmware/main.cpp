@@ -33,9 +33,8 @@ int main(void)
 	init_UART();
 	sei();
 
-//	start_acq();
+	//start_acq();
 
-	char buf[51];
 
 	// Notify the host that we are ready
 	UART_tx("Sync device is ready. Firmware version: ");
@@ -43,12 +42,7 @@ int main(void)
 
     while (1) 
     {
-		if(UART_rx(buf, 50) == OK)
-		{
-			buf[50] = 0;
-			UART_tx(buf);
-			UART_tx('\n');
-		}
+		poll_UART();
     }
 }
 

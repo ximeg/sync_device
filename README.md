@@ -16,7 +16,7 @@ The system can be in the following states:
  * Continuous imaging (NOT IMPLEMENTED). Laser(s) stay on all the time, we just trigger the camera. First frame is at most 200ms long (throw away frame).
 
 
-### Communication protocol (NOT IMPLEMENTED)
+### Communication protocol (Rudimentary)
 
  Each data packet is 5 byte long, which should be transmitted together without big delays between them. The first byte is the command, other 4 bytes are arguments (usually in uint32 format). Most of the arguments map directly to the `SystemSettings` structure of the microcontroller firmware to modify the relevant fields. 
 
@@ -24,6 +24,8 @@ The system can be in the following states:
 
 
 ## Installation
+
+### Firmware
 
 You'll need Microchip Studio (free) to build the firmware. Open the solution file and build the release target. To upload the firmaware to the microcontroller,
 you can use the embedded Arduino programmer. It is not supported out of the box by the Microchip studio but it's [pretty straightforward to add it](https://youtu.be/zEbSQaQJvHI).
@@ -42,3 +44,12 @@ and the arguments are (update them if necessary, especially pay attention to the
 ```
 
 Make sure that the build target is "Release" and not "Debug".
+
+
+### Python module
+
+Install with pip in a virtual environment.
+
+```
+pip install -e .
+```
