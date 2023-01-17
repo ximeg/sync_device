@@ -62,9 +62,9 @@ SYSTEM STATUS VARIABLES
 **********************/
 enum STATUS
 {
-	IDLE = 0,            // Doing nothing, waiting for commands
-	FRAME,               // Data acquisition (triggering of lasers and camera using TC1)
-	INTERFRAME_DELAY,    // Pause between frames (controlled by TC3)
+	IDLE = 0,    // Doing nothing, waiting for commands
+	CONT_ACQ,    // Continuous data acquisition (camera in synchronous readout mode)
+	STRB_ACQ,    // Stroboscopic acquisition
 };
 
 typedef struct SystemSettings

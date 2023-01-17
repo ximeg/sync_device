@@ -71,3 +71,20 @@ uint8_t next_laser()
 		}
 	}
 }
+
+void reset_lasers()
+{
+	if (sys.ALEX_enabled)
+	{
+		sys.current_laser = get_first_laser();
+	}
+	else
+	{
+		sys.current_laser = sys.lasers_in_use;
+	}
+}
+
+uint8_t get_first_laser()
+{
+	return get_lowest_bit(sys.lasers_in_use);
+}

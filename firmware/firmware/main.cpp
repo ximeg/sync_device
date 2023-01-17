@@ -34,9 +34,6 @@ int main(void)
 	init_UART();
 	sei();
 
-	//start_acq();
-
-
 	// Notify the host that we are ready
 	UART_tx("Sync device is ready. Firmware version: ");
 	UART_tx(VERSION);

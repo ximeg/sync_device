@@ -256,6 +256,11 @@ class AVR_Base(object):
         with self.com as com:
             com.write(pad(b"S" + cu32(N)))
 
+    def start_continuous(self, N=0):
+        """Start stroboscopic image acquisition"""
+        with self.com as com:
+            com.write(pad(b"C" + cu32(N)))
+
     def stop(self):
         """
         Stop running camera trigger

@@ -1,5 +1,6 @@
 #include "uart.h"
 #include "timers.h"
+#include "triggers.h"
 
 #define BAUDRATE 2000000UL
 #define UART_CTS F_CPU/8/BAUDRATE - 1
@@ -143,10 +144,11 @@ void parse_UART_command(const Data data)
 		case 'L':
 		sys.lasers_in_use = data.lasers.lasers_in_use;
 		sys.ALEX_enabled = data.lasers.ALEX_enabled;
+		reset_lasers();
 		UART_tx_ok();
 		break;
 
-		// Set Acquisition period between frames/bursts
+		// Set acquisition period between frames/bursts
 		case 'A':
 		sys.acq_period_us = data.uint32_value;
 		UART_tx_ok();
@@ -169,14 +171,19 @@ void parse_UART_command(const Data data)
 		sys.cam_readout_us = data.uint32_value;
 		UART_tx_ok();
 		break;
-	
+
 		// Start stroboscopic acquisition
 		case 'S':
-		sys.n_frames = data.uint32_value;
 		UART_tx_ok();
-		start_acq();
+		start_stroboscopic_acq(data.uint32_value);
 		break;
-		
+
+		// Start continuous acquisition
+		case 'C':
+		UART_tx_ok();
+		start_continuous_acq(data.uint32_value);
+		break;
+
 		// Stop acquisition
 		case 'Q':
 		sys.n_frames = data.uint32_value;

@@ -34,6 +34,7 @@ const uint8_t TCCR1B_prescaler_bits = bit(CS10) | bit(CS12);
 #endif // PRESC8
 
 
-void start_acq();
+void start_stroboscopic_acq(uint32_t n_frames = 0);
+void start_continuous_acq(uint32_t n_frames = 0);
 
 void stop_acq();
