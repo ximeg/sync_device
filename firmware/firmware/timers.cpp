@@ -25,31 +25,42 @@ void start_continuous_acq(uint32_t n_frames /*= 0*/)
 	stop_acq();
 	sys.status = CONT_ACQ;
 	sys.n_frames = n_frames;
-
-	// Set timing interval for TC1 (controls lasers and camera)
-	OCR1A = 0;		// Camera raising edge
-	OCR1C = us2cts(sys.exp_time_us) >> 2;	// Camera falling edge
-	OCR1C = (OCR1C > 0) ? OCR1C : 1;
-	ICR1 = us2cts(sys.exp_time_us) - 1;	// Overflow - next frame
 	
-	// Pause and sync timers
-	GTCCR |= bit(TSM) | bit(PSRSYNC);
+	/* Write timing info to double-buffered output compare registers OCR1X */
 
-	// Configure timers 1 and 3
+	// OCR1A (inactive) triggers camera after the shutter opening delay
+	OCR1A = us2cts(sys.shutter_delay_us);
+
+	// OCR1B (inactive) closes laser shutter and stops the acquisition
+	OCR1B = us2cts((sys.shutter_delay_us + sys.cam_readout_us));
+
+	/* First frame is as short as possible and will be discarded,
+	we need to read it out to clean out the signal accumulated in the sensor */
+	// Overflow @ start of next frame
+	ICR1 = us2cts((MAX(sys.cam_readout_us, sys.shutter_delay_us) + 250)) - 1;
+
+	// OCR1C generates the falling edge of the camera trigger. It's
+	// different for discard frame and subsequent frames
+	OCR1C = ICR1 >> 1;
+	
+	/************************************************************************/
+	/* TODO: SANITY CHECK FOR THE SUPPLIED VALUES                           */
+	/* If values are weird, send error message back to the host and abort   */
+	// errcode check_timings(STATUS acq_mode)
+	/* Example: cam readout cannot be shorter than exposure time*/
+	/************************************************************************/
+
+	// Configure and start TC1
 	TCCR1A = bit(WGM11); // WGM mode 14 (fast PWM with ICR1 max)
 	TCCR1B = bit(WGM12) | bit(WGM13) | TCCR1B_prescaler_bits;
-
-	// Enable interrupts for overflow, match A, and match B
-	TIMSK1 = bit(TOIE1) | bit(OCIE1A) | bit(OCIE1C);
-
-	// Let the timers go!
-	bitClear(GTCCR, TSM);
-
-	// open laser shutters
-	lasers_on();
 	
-	// Use TC3 for the first frame???
+	// Enable interrupts for match C and overflow
+	TIMSK1 = bit(TOIE1) | bit(OCIE1C);
+	
+	// Trigger camera
+	bitSet(CAMERA_PORT, CAMERA_PIN);
 }
+
 
 void start_stroboscopic_acq(uint32_t n_frames /*= 0*/)
 {
@@ -88,6 +99,7 @@ void start_stroboscopic_acq(uint32_t n_frames /*= 0*/)
 }
 
 
+
 // ---------------------------
 // INTERRUPTS
 // ---------------------------
@@ -99,16 +111,32 @@ ISR(TIMER1_COMPA_vect)
 
 ISR(TIMER1_COMPB_vect)
 {
-	if (sys.status == STRB_ACQ){
-		lasers_off();
+	lasers_off();
+
+	// In continuous mode, this concludes the acquisition
+	if (sys.status == CONT_ACQ)
+	{
+		stop_acq();
+		UART_tx("DONE\n");
 	}
 }
 
 ISR(TIMER1_COMPC_vect)
 {
+	// Generate falling edge of the camera trigger
 	bitClear(CAMERA_PORT, CAMERA_PIN);
+	
+	/* CONTINUOUS ACQUISITION LOGIC */
+	if (sys.status == CONT_ACQ)
+	{
+		if (sys.n_acquired_frames == 0)  // discard frame
+		{
+			OCR1C = us2cts(sys.shutter_delay_us) + (us2cts(sys.cam_readout_us) >> 1);
+		}
+	}
 
-	// Additional logic - preparation for the next frame
+	/* STROBOSCOPIC/ALEX ACQUISITION LOGIC */
+	// In strobe mode, we might need to alternate lasers within a burst
 	if (sys.status == STRB_ACQ)
 	{
 		if (sys.ALEX_enabled)
@@ -125,8 +153,44 @@ ISR(TIMER1_COMPC_vect)
 	}
 }
 
+
 ISR(TIMER1_OVF_vect)
 {
+	/* CONTINUOUS ACQUISITION LOGIC */
+	if (sys.status == CONT_ACQ)
+	{
+		if (sys.n_acquired_frames == 0)  // discard frame
+		{
+			// Open laser shutter
+			sys.current_laser = sys.lasers_in_use;
+			lasers_on();
+			
+			TIFR1 |= bit(OCF1A);   // clear interrupt flag
+			TIMSK1 |= bit(OCIE1A); // activate interrupt
+			
+			// Change TC1 period (exposure time)
+			ICR1 = us2cts(sys.exp_time_us) - 1;
+		}
+
+		if (sys.n_acquired_frames == sys.n_frames) // This was last frame
+		{
+			// Setup interrupt B to close laser shutter and stop timer
+			OCR1B = us2cts((sys.shutter_delay_us + sys.cam_readout_us));
+			TIFR1 |= bit(OCF1B);   // clear interrupt flag
+			TIMSK1 |= bit(OCIE1B); // activate interrupt
+		}
+
+		if (sys.n_acquired_frames > sys.n_frames) // Acquisition finished, we missed OCR1B event
+		{
+			stop_acq();
+			UART_tx("DONE\n");
+		}
+
+		sys.n_acquired_frames++;
+	}
+	
+	
+	/* STROBOSCOPIC/ALEX ACQUISITION LOGIC */
 	if (sys.status == STRB_ACQ)
 	{
 		if(last_burst_frame)
@@ -143,7 +207,7 @@ ISR(TIMER1_OVF_vect)
 }
 
 
-ISR(TIMER3_OVF_vect)
+ISR(TIMER3_OVF_vect) // used only for stroboscopic acquisition mode
 {
 	t3_cycle++;
 	if (t3_cycle >= t3_N_OVF_cycles) // count # of overflow events for long intervals
@@ -183,11 +247,16 @@ void stop_acq()
 	t3_N_OVF_cycles = 1;
 	last_burst_frame = false;
 
-	// Stop timers and reset frame counters
-	TCCR1B &= ~TCCR1B_prescaler_bits;
-	TCCR3B &= ~TCCR1B_prescaler_bits;
-	
 	// Reset timers
+	TCCR1A = 0;
+	TCCR1B = 0;
 	TCNT1 = 0;
+
+	TCCR3A = 0;
+	TCCR3B = 0;
 	TCNT3 = 0;
+	
+	// Clear timer interrupt flags
+	TIFR1 = bit(TOV1) | bit(OCF1A) | bit(OCF1B) | bit(OCF1C);
+	TIFR3 = bit(TOV3) | bit(OCF3A) | bit(OCF3B) | bit(OCF3C);
 }

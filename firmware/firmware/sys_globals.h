@@ -17,6 +17,9 @@
 
 #define VERSION "0.4.0\n"
 
+#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
+#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
+
 /***************/
 /* Error codes */
 /***************/

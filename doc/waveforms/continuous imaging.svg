@@ -28,9 +28,9 @@
      inkscape:pageopacity="1"
      inkscape:pagecheckerboard="0"
      showgrid="false"
-     inkscape:zoom="1.4"
-     inkscape:cx="388.92857"
-     inkscape:cy="209.28571"
+     inkscape:zoom="1.979899"
+     inkscape:cx="517.95572"
+     inkscape:cy="72.730983"
      inkscape:window-width="2400"
      inkscape:window-height="1321"
      inkscape:window-x="-6"
@@ -39740,71 +39740,6 @@
          style="font-size:10.6667px;text-align:center;text-anchor:middle">A</tspan></text>
     <text
        xml:space="preserve"
-       style="font-size:10.6667px;line-height:1.25;font-family:sans-serif"
-       x="98.994949"
-       y="16.12183"
-       id="text72326"><tspan
-         sodipodi:role="line"
-         x="98.994949"
-         y="16.12183"
-         id="tspan73076">n = 3</tspan></text>
-    <text
-       xml:space="preserve"
-       style="font-size:10.6667px;line-height:1.25;font-family:sans-serif"
-       x="102.99495"
-       y="28.12183"
-       id="text73162"><tspan
-         sodipodi:role="line"
-         x="102.99495"
-         y="28.12183"
-         id="tspan73160">i = -1</tspan></text>
-    <text
-       xml:space="preserve"
-       style="font-size:10.6667px;line-height:1.25;font-family:sans-serif"
-       x="258.99493"
-       y="28.12183"
-       id="text73678"><tspan
-         sodipodi:role="line"
-         x="258.99493"
-         y="28.12183"
-         id="tspan73676">i = 0</tspan></text>
-    <text
-       xml:space="preserve"
-       style="font-size:10.6667px;line-height:1.25;font-family:sans-serif"
-       x="418.99493"
-       y="28.12183"
-       id="text73784"><tspan
-         sodipodi:role="line"
-         x="418.99493"
-         y="28.12183"
-         id="tspan73782">i = 1</tspan></text>
-    <text
-       xml:space="preserve"
-       style="font-size:10.6667px;line-height:1.25;font-family:sans-serif"
-       x="578.99493"
-       y="28.12183"
-       id="text73890"><tspan
-         sodipodi:role="line"
-         x="578.99493"
-         y="28.12183"
-         id="tspan73888">i = 2</tspan></text>
-    <text
-       xml:space="preserve"
-       style="font-size:10.6667px;line-height:1.25;font-family:sans-serif"
-       x="738.99493"
-       y="28.12183"
-       id="text74194"><tspan
-         sodipodi:role="line"
-         x="738.99493"
-         y="28.12183"
-         id="tspan74192">i = 3 == n</tspan><tspan
-         sodipodi:role="line"
-         x="738.99493"
-         y="41.455204"
-         id="tspan75054"
-         style="font-size:6.66667px">acq done; activate B</tspan></text>
-    <text
-       xml:space="preserve"
        style="font-size:10.6667px;line-height:1.25;font-family:sans-serif;text-align:center;text-anchor:middle"
        x="589.07544"
        y="-36.93148"
@@ -39974,5 +39909,121 @@
          x="836.16736"
          y="-15.307172"
          id="tspan89218">Send &quot;DONE&quot;</tspan></text>
+    <text
+       xml:space="preserve"
+       style="display:inline;font-size:10.6667px;line-height:1.25;font-family:sans-serif;fill:#d40000"
+       x="98.994949"
+       y="16.12183"
+       id="text72326"><tspan
+         sodipodi:role="line"
+         x="98.994949"
+         y="16.12183"
+         id="tspan73076">n = 3</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:10.6667px;line-height:1.25;font-family:sans-serif;display:inline;fill:#d40000"
+       x="102.99495"
+       y="28.12183"
+       id="text73162"><tspan
+         sodipodi:role="line"
+         x="102.99495"
+         y="28.12183"
+         id="tspan73160">i = 0</tspan></text>
+    <text
+       xml:space="preserve"
+       style="display:inline;font-size:6.66667px;line-height:1.25;font-family:sans-serif;fill:#aa0000"
+       x="-27.829922"
+       y="268.496"
+       id="text73678"
+       transform="rotate(-90,1.1415515e-6,-2.5695936e-6)"><tspan
+         sodipodi:role="line"
+         x="-27.829922"
+         y="268.496"
+         id="tspan73676"
+         style="font-size:6.66667px;fill:#aa0000">i=0</tspan></text>
+    <text
+       xml:space="preserve"
+       style="display:inline;font-size:6.66667px;line-height:1.25;font-family:sans-serif;fill:#aa0000"
+       x="-27.829922"
+       y="276.496"
+       id="text12847"
+       transform="rotate(-90,1.1415515e-6,-2.5695936e-6)"><tspan
+         sodipodi:role="line"
+         x="-27.829922"
+         y="276.496"
+         id="tspan12845"
+         style="font-size:6.66667px;fill:#aa0000">i=1</tspan></text>
+    <text
+       xml:space="preserve"
+       style="display:inline;font-size:6.66667px;line-height:1.25;font-family:sans-serif;fill:#aa0000"
+       x="-27.829922"
+       y="428.8577"
+       id="text13113"
+       transform="rotate(-90,1.1415515e-6,-2.5695936e-6)"><tspan
+         sodipodi:role="line"
+         x="-27.829922"
+         y="428.8577"
+         id="tspan13111"
+         style="font-size:6.66667px;fill:#aa0000">i=1</tspan></text>
+    <text
+       xml:space="preserve"
+       style="display:inline;font-size:6.66667px;line-height:1.25;font-family:sans-serif;fill:#aa0000"
+       x="-27.829922"
+       y="436.8577"
+       id="text13117"
+       transform="rotate(-90,1.1415515e-6,-2.5695936e-6)"><tspan
+         sodipodi:role="line"
+         x="-27.829922"
+         y="436.8577"
+         id="tspan13115"
+         style="font-size:6.66667px;fill:#aa0000">i=2</tspan></text>
+    <text
+       xml:space="preserve"
+       style="display:inline;font-size:6.66667px;line-height:1.25;font-family:sans-serif;fill:#aa0000"
+       x="-27.829922"
+       y="588.46179"
+       id="text14452"
+       transform="rotate(-90,1.1415515e-6,-2.5695936e-6)"><tspan
+         sodipodi:role="line"
+         x="-27.829922"
+         y="588.46179"
+         id="tspan14450"
+         style="font-size:6.66667px;fill:#aa0000">i=2</tspan></text>
+    <text
+       xml:space="preserve"
+       style="display:inline;font-size:6.66667px;line-height:1.25;font-family:sans-serif;fill:#aa0000"
+       x="-27.829922"
+       y="596.46179"
+       id="text14456"
+       transform="rotate(-90,1.1415515e-6,-2.5695936e-6)"><tspan
+         sodipodi:role="line"
+         x="-27.829922"
+         y="596.46179"
+         id="tspan14454"
+         style="font-size:6.66667px;fill:#aa0000">i=3</tspan></text>
+    <text
+       xml:space="preserve"
+       style="display:inline;font-size:6.66667px;line-height:1.25;font-family:sans-serif;fill:#aa0000"
+       x="-27.829922"
+       y="748.57098"
+       id="text15829"
+       transform="rotate(-90,1.1415515e-6,-2.5695936e-6)"><tspan
+         sodipodi:role="line"
+         x="-27.829922"
+         y="748.57098"
+         id="tspan15827"
+         style="font-size:6.66667px;fill:#aa0000">i=3</tspan></text>
+    <text
+       xml:space="preserve"
+       style="display:inline;font-size:6.66667px;line-height:1.25;font-family:sans-serif;fill:#aa0000"
+       x="-27.829922"
+       y="756.57098"
+       id="text15833"
+       transform="rotate(-90,1.1415515e-6,-2.5695936e-6)"><tspan
+         sodipodi:role="line"
+         x="-27.829922"
+         y="756.57098"
+         id="tspan15831"
+         style="font-size:6.66667px;fill:#aa0000">i=4</tspan></text>
   </g>
 </svg>

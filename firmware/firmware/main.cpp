@@ -18,8 +18,8 @@
 SystemSettings sys = {
 	IDLE,    // STATUS   status;
 	500UL,  // uint32_t shutter_delay_us;
-	2500UL, // uint32_t cam_readout_us;
-	1000UL,  // uint32_t exp_time_us;
+	1000UL, // uint32_t cam_readout_us;
+	2000UL,  // uint32_t exp_time_us;
 	20000UL, // uint32_t acq_period_us; // at least the sum of all three above
 	0,       // uint32_t n_frames;
 	0,       // uint32_t n_acquired_frames;
@@ -37,6 +37,8 @@ int main(void)
 	// Notify the host that we are ready
 	UART_tx("Sync device is ready. Firmware version: ");
 	UART_tx(VERSION);
+
+	start_continuous_acq(2);
 
     while (1) 
     {
