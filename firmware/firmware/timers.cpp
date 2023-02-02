@@ -172,7 +172,8 @@ ISR(TIMER1_OVF_vect)
 			ICR1 = us2cts(sys.exp_time_us) - 1;
 		}
 
-		if (sys.n_acquired_frames == sys.n_frames) // This was last frame
+		// This was the last frame
+		if ((sys.n_acquired_frames == sys.n_frames) && (sys.n_frames > 0))
 		{
 			// Setup interrupt B to close laser shutter and stop timer
 			OCR1B = us2cts((sys.shutter_delay_us + sys.cam_readout_us));
@@ -180,7 +181,8 @@ ISR(TIMER1_OVF_vect)
 			TIMSK1 |= bit(OCIE1B); // activate interrupt
 		}
 
-		if (sys.n_acquired_frames > sys.n_frames) // Acquisition finished, we missed OCR1B event
+		// Acquisition finished, we missed OCR1B event
+		if ((sys.n_acquired_frames > sys.n_frames) && (sys.n_frames > 0))
 		{
 			stop_acq();
 			UART_tx("DONE\n");

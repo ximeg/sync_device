@@ -38,8 +38,6 @@ int main(void)
 	UART_tx("Sync device is ready. Firmware version: ");
 	UART_tx(VERSION);
 
-	start_continuous_acq(2);
-
     while (1) 
     {
 		poll_UART();
