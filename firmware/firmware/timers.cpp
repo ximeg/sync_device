@@ -95,7 +95,7 @@ void start_stroboscopic_acq(uint32_t n_frames /*= 0*/)
 	bitClear(GTCCR, TSM);
 
 	// open laser shutters
-	lasers_on();
+	set_lasers(sys.current_laser);
 }
 
 
@@ -159,11 +159,11 @@ ISR(TIMER1_OVF_vect)
 	/* CONTINUOUS ACQUISITION LOGIC */
 	if (sys.status == CONT_ACQ)
 	{
+		// we call it here so that active lasers could be update on the fly
+		set_lasers(sys.lasers_in_use);
+
 		if (sys.n_acquired_frames == 0)  // discard frame
 		{
-			// Open laser shutter
-			sys.current_laser = sys.lasers_in_use;
-			lasers_on();
 			
 			TIFR1 |= bit(OCF1A);   // clear interrupt flag
 			TIMSK1 |= bit(OCIE1A); // activate interrupt
@@ -203,7 +203,7 @@ ISR(TIMER1_OVF_vect)
 		else
 		{
 			// Open shutter for the next laser within the burst (ALEX only)
-			lasers_on();
+			set_lasers(sys.current_laser);
 		}
 	}
 }
@@ -222,7 +222,7 @@ ISR(TIMER3_OVF_vect) // used only for stroboscopic acquisition mode
 			t3_cycle = 0;
 
 			// Open laser shutters
-			lasers_on();
+			set_lasers(sys.current_laser);
 
 			// Start timer 1
 			TCCR1B |= TCCR1B_prescaler_bits;

@@ -14,7 +14,7 @@
 
 void init_IO();
 
-void lasers_on();
+void set_lasers(uint8_t laser);
 void lasers_off();
 uint8_t next_laser();
 

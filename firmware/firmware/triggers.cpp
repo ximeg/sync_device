@@ -15,9 +15,9 @@ void init_IO()
 }
 
 
-void lasers_on()
+void set_lasers(uint8_t laser)
 {
-	SHUTTERS_PORT |= sys.current_laser & SHUTTERS_MASK;
+	SHUTTERS_PORT = laser & SHUTTERS_MASK;
 }
 
 void lasers_off()
