@@ -1,3 +1,12 @@
+/**
+ * @file timers.h
+ * @author Roman Kiselev (roman.kiselev@stjude.org)
+ * @brief Control of TCNT1 and TCNT3 and logic of waveform generation
+ *
+ * @copyright Copyright (c) 2023
+ *
+ */
+
 #pragma once
 
 #include "sys_globals.h"
@@ -33,8 +42,11 @@ const uint8_t TCCR1B_prescaler_bits = bit(CS10) | bit(CS12);
 #define us2cts(us) (us >> presc_shift)             // microseconds to counts
 #endif // PRESC8
 
-
+// Configure hardware and start acquisition of a given number of frames.
+// n_frames = 0 means no limit on number of frames. Global variables in
+// structure `sys` define waveform timings and active laser shutters.
 void start_stroboscopic_acq(uint32_t n_frames = 0);
 void start_continuous_acq(uint32_t n_frames = 0);
 
+// Immediately stop any running acquisition
 void stop_acq();

@@ -2,7 +2,7 @@
  * @file sys_globals.h
  * @author Roman Kiselev (roman.kiselev@stjude.org)
  * @brief Global system definitions: pin out and settings.
- * @version 0.3
+ * @version 0.4
  * @date 2022-01-10
  *
  * @copyright Copyright (c) 2023
