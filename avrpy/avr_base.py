@@ -261,6 +261,11 @@ class AVR_Base(object):
         with self.com as com:
             com.write(pad(b"C" + cu32(N)))
 
+    def open_shutters(self):
+        """Open laser shutters"""
+        with self.com as com:
+            com.write(pad(b"M"))
+
     def stop(self):
         """
         Stop running camera trigger

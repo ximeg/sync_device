@@ -86,6 +86,7 @@ The first byte in the data packet is the command, other 4 bytes are arguments (u
 Commands `R` and `W` allow to read/write any arbitrary register of the microcontroller and are intented for debugging purposes.
 
 The argument `lasers` of the `L` command is a bitmask where lower four bits represent enabled lasers. Bit order is `bit0`: Cy2 laser, `bit3`: Cy7 laser.
+Once the laser states are set, they can be manually opened while the system is in the `IDLE` state using the _M_ command. Sending _Q_ will close the shutters.
 
 _Mode_ column contains _C_ for continuous imaging and _S_ for stroboscopic mode.
 

@@ -184,6 +184,19 @@ void parse_UART_command(const Data data)
 		start_continuous_acq(data.uint32_value);
 		break;
 
+		// Manually open laser shutters
+		case 'M':
+		if (sys.status == IDLE)
+		{
+			UART_tx_ok();
+			set_lasers(sys.lasers_in_use);
+		}
+		else
+		{
+			UART_tx_err("M: Not in the IDLE state");
+		}
+		break;
+
 		// Stop acquisition
 		case 'Q':
 		sys.n_frames = data.uint32_value;
